@@ -17,6 +17,7 @@ import { Button } from './ui/Button';
 import { Marquee } from './ui/Marquee';
 import { TwinkleSparkle } from './ui/Sparkle';
 import { cn } from '../lib/cn';
+import { useTheme } from '../lib/theme';
 
 const enclaves: { label: string; location: string }[] = [
   { label: 'Kudle Beach Clifftops', location: 'kudle' },
@@ -30,7 +31,6 @@ const planLinks: { label: string; path: string }[] = [
   { label: 'Cliff Trails & Ferry', path: '/trails' },
   { label: 'Track Bookings', path: '/bookings' },
   { label: 'Reservation Desk', path: '/bookings' },
-  { label: 'Field Survey', path: '/survey' },
 ];
 
 function FooterLink({ label, onClick }: { label: string; onClick: () => void }) {
@@ -54,6 +54,7 @@ export function Footer({
 }) {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const { theme } = useTheme();
 
   function subscribe(e: React.FormEvent) {
     e.preventDefault();
@@ -104,7 +105,11 @@ export function Footer({
         <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12">
           <div className="space-y-4 lg:col-span-4">
             <div className="flex items-center gap-3">
-              <img src="/coastal-trails-logo.svg" alt="Coastal Trails" className="h-12 w-auto object-contain" />
+              <img
+                src={theme === 'dark' ? '/coastal-trails-logo-dark.svg' : '/coastal-trails-logo.svg'}
+                alt="Coastal Trails"
+                className="h-12 w-auto object-contain"
+              />
               <span className="font-display text-xl font-semibold text-ink">Coastal Trails</span>
             </div>
             <p className="max-w-sm text-xs leading-relaxed text-ink-2">

@@ -40,7 +40,7 @@ async function botAnswer(input: string): Promise<string> {
         ? `I couldn't find booking ${code}. Double-check the reference code or the registered phone number.`
         : 'No bookings found for this traveler yet.';
     } catch {
-      return 'I could not reach the booking desk just now — please try again in a moment.';
+      return 'Booking tracking needs your account — please sign in from the top bar, then ask me again.';
     }
   }
 

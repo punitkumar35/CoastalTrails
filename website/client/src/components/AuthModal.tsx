@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Phone, Sparkles, ShieldCheck, User as UserIcon, Waves, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck, User as UserIcon, Waves, X } from 'lucide-react';
 import type { User } from '../types';
+import { api } from '../services/api';
 import { Dialog } from './ui/Dialog';
 import { Button } from './ui/Button';
 import { cn } from '../lib/cn';
 import { easeOut, springSoft } from '../lib/motion';
+
+const PHONE_RE = /^\+?[0-9]{10,15}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function normalizePhone(raw: string) {
+  return raw.replace(/[\s\-()]/g, '');
+}
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -27,6 +35,8 @@ const fieldVariants = {
 export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signin' }: AuthModalProps) {
   const [mode, setMode] = useState<'signin' | 'register'>(initialMode);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,54 +46,66 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
   useEffect(() => {
     setMode(initialMode);
     setError('');
+    setPassword('');
   }, [initialMode, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!identifier.trim()) {
-      setError('Please provide your WhatsApp phone or email address.');
-      return;
-    }
-    if (mode === 'register' && !name.trim()) {
-      setError('Please provide your name.');
-      return;
-    }
-    if (!password || password.length < 4) {
-      setError('Password must be at least 4 characters.');
-      return;
+    if (mode === 'register') {
+      if (name.trim().length < 2) {
+        setError('Please enter your full name (at least 2 characters).');
+        return;
+      }
+      if (!PHONE_RE.test(normalizePhone(phone))) {
+        setError('Enter a valid mobile number, e.g. +91 98765 43210.');
+        return;
+      }
+      if (!EMAIL_RE.test(email.trim())) {
+        setError('Enter a valid email address, e.g. name@example.com.');
+        return;
+      }
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long.');
+        return;
+      }
+      if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+        setError('Password must include at least one letter and one number.');
+        return;
+      }
+    } else {
+      if (!identifier.trim()) {
+        setError('Please provide your mobile number or email address.');
+        return;
+      }
+      if (!password) {
+        setError('Please enter your password.');
+        return;
+      }
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const user: User = {
-        id: 'usr_' + Date.now().toString(36),
-        name: mode === 'register' ? name.trim() : name.trim() || identifier.split('@')[0] || 'Traveler',
-        phone: identifier.includes('@') ? '+91 98765 43210' : identifier,
-        email: identifier.includes('@') ? identifier : undefined,
-      };
+    try {
+      const user =
+        mode === 'register'
+          ? await api.register({
+              name: name.trim(),
+              phone: normalizePhone(phone.trim()),
+              email: email.trim().toLowerCase(),
+              password,
+            })
+          : await api.login(identifier.trim(), password);
+
       localStorage.setItem('gokarna_traveler_user', JSON.stringify(user));
+      setPassword('');
       onAuthSuccess(user);
       onClose();
-    }, 600);
-  };
-
-  const handleDemoSignIn = () => {
-    setIsLoading(true);
-    setTimeout(() => {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
       setIsLoading(false);
-      const demoUser: User = {
-        id: 'usr_punit',
-        name: 'Punit Naik',
-        phone: '+91 98765 43210',
-        email: 'punit@coastaltrails.in',
-      };
-      localStorage.setItem('gokarna_traveler_user', JSON.stringify(demoUser));
-      onAuthSuccess(demoUser);
-      onClose();
-    }, 400);
+    }
   };
 
   const inputBase =
@@ -162,6 +184,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                   onClick={() => {
                     setMode(m);
                     setError('');
+                    setPassword('');
                   }}
                   className={cn(
                     'relative flex-1 rounded-lg py-2 text-xs font-semibold transition-colors',
@@ -219,20 +242,59 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                     </motion.div>
                   ) : null}
 
-                  <motion.div variants={fieldVariants} className="space-y-1.5">
-                    <label className="overline block !text-ink-3">WhatsApp mobile or email</label>
-                    <div className={inputBase}>
-                      <Phone className="ml-3 h-4 w-4 shrink-0 text-ink-3" />
-                      <input
-                        type="text"
-                        required
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder="+91 98765 43210 or name@example.com"
-                        className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
-                      />
-                    </div>
-                  </motion.div>
+                  {mode === 'register' ? (
+                    <>
+                      <motion.div variants={fieldVariants} className="space-y-1.5">
+                        <label className="overline block !text-ink-3">Mobile number</label>
+                        <div className={inputBase}>
+                          <Phone className="ml-3 h-4 w-4 shrink-0 text-ink-3" />
+                          <input
+                            type="tel"
+                            required
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="+91 98765 43210"
+                            autoComplete="tel"
+                            className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                          />
+                        </div>
+                      </motion.div>
+
+                      <motion.div variants={fieldVariants} className="space-y-1.5">
+                        <label className="overline block !text-ink-3">Email address</label>
+                        <div className={inputBase}>
+                          <Mail className="ml-3 h-4 w-4 shrink-0 text-ink-3" />
+                          <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="name@example.com"
+                            autoComplete="email"
+                            className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                          />
+                        </div>
+                      </motion.div>
+                    </>
+                  ) : null}
+
+                  {mode === 'signin' ? (
+                    <motion.div variants={fieldVariants} className="space-y-1.5">
+                      <label className="overline block !text-ink-3">Mobile number or email</label>
+                      <div className={inputBase}>
+                        <Phone className="ml-3 h-4 w-4 shrink-0 text-ink-3" />
+                        <input
+                          type="text"
+                          required
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          placeholder="+91 98765 43210 or name@example.com"
+                          autoComplete="username"
+                          className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                        />
+                      </div>
+                    </motion.div>
+                  ) : null}
 
                   <motion.div variants={fieldVariants} className="space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -255,6 +317,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
+                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                         className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
                       />
                       <button
@@ -266,6 +329,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {mode === 'register' ? (
+                      <p className="text-[11px] text-ink-3">
+                        Min 8 characters, with at least one letter and one number.
+                      </p>
+                    ) : null}
                   </motion.div>
                 </motion.div>
               </AnimatePresence>
@@ -285,18 +353,6 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                 )}
               </Button>
             </form>
-
-            <div className="mt-5 border-t border-line pt-4">
-              <button
-                type="button"
-                onClick={handleDemoSignIn}
-                disabled={isLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-warn/30 bg-warn/5 py-2.5 text-xs font-semibold text-warn transition-colors hover:bg-warn/10"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Instant demo traveler login
-              </button>
-            </div>
 
             <p className="mt-4 flex items-center justify-center gap-1.5 text-center font-mono text-[10px] uppercase tracking-wider text-ink-3">
               <ShieldCheck className="h-3 w-3 text-tide" />

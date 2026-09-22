@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Lock } from 'lucide-react';
@@ -18,11 +18,13 @@ import { api } from './services/api';
 
 const ExplorePage = lazy(() => import('./pages/ExplorePage').then((m) => ({ default: m.ExplorePage })));
 const StayDetailPage = lazy(() => import('./pages/StayDetailPage').then((m) => ({ default: m.StayDetailPage })));
+const StayReviewsPage = lazy(() => import('./pages/StayReviewsPage').then((m) => ({ default: m.StayReviewsPage })));
 const RouteNavigatorPage = lazy(() => import('./pages/RouteNavigatorPage').then((m) => ({ default: m.RouteNavigatorPage })));
 const ReservationStatusPage = lazy(() => import('./pages/ReservationStatusPage').then((m) => ({ default: m.ReservationStatusPage })));
 const DatabaseStudioPage = lazy(() => import('./pages/DatabaseStudioPage').then((m) => ({ default: m.DatabaseStudioPage })));
 const SurveyWorkspacePage = lazy(() => import('./survey/SurveyWorkspacePage').then((m) => ({ default: m.SurveyWorkspacePage })));
 const BookingPage = lazy(() => import('./pages/BookingPage').then((m) => ({ default: m.BookingPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const CommandPalette = lazy(() => import('./components/ui/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 function PageFallback() {
@@ -40,16 +42,28 @@ function PageFallback() {
 
 function RequireAuth({
   user,
+  authReady,
   onRequireAuth,
   onExplore,
   children,
 }: {
   user: User | null;
+  authReady: boolean;
   onRequireAuth: () => void;
   onExplore: () => void;
   children: ReactNode;
 }) {
+  const requested = useRef(false);
+  useEffect(() => {
+    // Wait until the saved session has been restored before deciding to prompt
+    if (authReady && !user && !requested.current) {
+      requested.current = true;
+      onRequireAuth();
+    }
+  }, [authReady, user, onRequireAuth]);
+
   if (user) return <>{children}</>;
+  if (!authReady) return <PageFallback />;
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-line bg-elevated px-8 py-16 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-tide-glow/15 text-tide">
@@ -76,6 +90,7 @@ export function App() {
   const [recentRefCode, setRecentRefCode] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -96,9 +111,21 @@ export function App() {
     fetchStays();
     try {
       const savedUser = localStorage.getItem('gokarna_traveler_user');
-      if (savedUser) setCurrentUser(JSON.parse(savedUser));
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser) as User;
+        if (parsed && parsed.id && (parsed.phone || parsed.email)) {
+          setCurrentUser(parsed);
+        } else {
+          localStorage.removeItem('gokarna_traveler_user');
+        }
+      }
     } catch (e) {
       console.warn('Failed to parse saved user:', e);
+      localStorage.removeItem('gokarna_traveler_user');
+    } finally {
+      // Session restore finished — protected routes can now safely decide
+      // whether the visitor really needs to sign in.
+      setAuthReady(true);
     }
   }, []);
 
@@ -113,13 +140,16 @@ export function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // Every page opens at the top instead of inheriting the previous scroll position
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
+
   const commandItems = useMemo<CommandItem[]>(
     () => [
-      { id: 'home', group: 'Navigate', label: 'Explore homestays', hint: '/', onSelect: () => navigate('/') },
-      { id: 'trails', group: 'Navigate', label: 'Cliff trails & ferry', hint: '/trails', onSelect: () => navigate('/trails') },
-      { id: 'bookings', group: 'Navigate', label: 'Track bookings', hint: '/bookings', onSelect: () => navigate('/bookings') },
-      { id: 'database', group: 'Tools', label: 'Database studio', hint: '/database', onSelect: () => navigate('/database') },
-      { id: 'survey', group: 'Tools', label: 'Field survey', hint: '/survey', onSelect: () => navigate('/survey') },
+      { id: 'home', label: 'Explore homestays', onSelect: () => navigate('/') },
+      { id: 'trails', label: 'Cliff trails & ferry', onSelect: () => navigate('/trails') },
+      { id: 'bookings', label: 'Track bookings', onSelect: () => navigate('/bookings') },
     ],
     [navigate],
   );
@@ -147,6 +177,7 @@ export function App() {
           setIsAuthOpen(true);
         }}
         onSignOut={() => {
+          api.logout();
           localStorage.removeItem('gokarna_traveler_user');
           setCurrentUser(null);
         }}
@@ -188,13 +219,25 @@ export function App() {
             />
 
             <Route
+              path="/stay/:id/reviews"
+              element={
+                <StayReviewsPage />
+              }
+            />
+
+            <Route
               path="/stay/:id"
               element={
                 <StayDetailPage
                   homestay={selectedStay}
+                  currentUser={currentUser}
                   onBack={() => navigate('/')}
                   onBook={(stay) => handleBookStay(stay || selectedStay!)}
                   onNavigateRoute={() => navigate('/trails')}
+                  onRequireAuth={() => {
+                    setAuthMode('signin');
+                    setIsAuthOpen(true);
+                  }}
                 />
               }
             />
@@ -207,13 +250,14 @@ export function App() {
               element={
                 <RequireAuth
                   user={currentUser}
+                  authReady={authReady}
                   onRequireAuth={() => {
                     setAuthMode('signin');
                     setIsAuthOpen(true);
                   }}
                   onExplore={() => navigate('/')}
                 >
-                  <ReservationStatusPage initialRefCode={recentRefCode} onExploreStays={() => navigate('/')} />
+                  <ReservationStatusPage currentUser={currentUser} initialRefCode={recentRefCode} onExploreStays={() => navigate('/')} />
                 </RequireAuth>
               }
             />
@@ -222,13 +266,14 @@ export function App() {
               element={
                 <RequireAuth
                   user={currentUser}
+                  authReady={authReady}
                   onRequireAuth={() => {
                     setAuthMode('signin');
                     setIsAuthOpen(true);
                   }}
                   onExplore={() => navigate('/')}
                 >
-                  <ReservationStatusPage onExploreStays={() => navigate('/')} />
+                  <ReservationStatusPage currentUser={currentUser} onExploreStays={() => navigate('/')} />
                 </RequireAuth>
               }
             />
@@ -238,20 +283,21 @@ export function App() {
               element={
                 <RequireAuth
                   user={currentUser}
+                  authReady={authReady}
                   onRequireAuth={() => {
                     setAuthMode('signin');
                     setIsAuthOpen(true);
                   }}
                   onExplore={() => navigate('/')}
                 >
-                  <BookingPage />
+                  <BookingPage currentUser={currentUser} />
                 </RequireAuth>
               }
             />
             <Route path="/database" element={<DatabaseStudioPage />} />
             <Route path="/survey" element={<SurveyWorkspacePage />} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </Suspense>
         </motion.div>
@@ -268,7 +314,15 @@ export function App() {
         isOpen={isAuthOpen}
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={(user) => setCurrentUser(user)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          const path = location.pathname;
+          // Continue where the user already was when they deliberately opened
+          // the bookings area or started a booking; otherwise land on the homestay page.
+          const keepContext =
+            path.startsWith('/bookings') || path.startsWith('/reservation') || path.startsWith('/book/');
+          if (!keepContext) navigate('/homestays');
+        }}
       />
 
       <Suspense fallback={null}>

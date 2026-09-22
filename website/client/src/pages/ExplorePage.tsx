@@ -43,6 +43,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
   const [quickFilterSearch, setQuickFilterSearch] = useState('');
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const listingsRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isFilterExpanded) return;
@@ -107,6 +108,15 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
       }
     }
     onFilterChange('all', searchTerm, checkIn, checkOut);
+    // Bring the user straight to the matching listings instead of leaving them at the hero
+    window.setTimeout(() => {
+      const el = listingsRef.current;
+      if (!el) return;
+      const NAV_OFFSET = 96;
+      const EXTRA_SCROLL = 150;
+      const top = window.scrollY + el.getBoundingClientRect().top - NAV_OFFSET + EXTRA_SCROLL;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, 80);
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -252,13 +262,13 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
           <div className="space-y-3">
             <form
               onSubmit={handleSearchSubmit}
-              className="bg-white rounded-2xl shadow-lg shadow-slate-900/[0.05] border border-slate-200 p-2 sm:p-2.5 text-slate-900 w-full"
+              className="bg-white dark:bg-elevated rounded-2xl shadow-lg shadow-slate-900/[0.05] dark:shadow-black/30 border border-slate-200 dark:border-line p-2 sm:p-2.5 text-slate-900 dark:text-ink w-full"
             >
               <div className="flex flex-col md:grid md:grid-cols-12 gap-2">
                 {/* 1. Keyword or Shoreline */}
-                <div className="md:col-span-5 px-3.5 py-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-200/80 focus-within:border-sky-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sky-100 transition-all">
-                  <label className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <MapPin className="w-2.5 h-2.5 text-sky-600" />
+                <div className="md:col-span-5 px-3.5 py-2 bg-slate-50/80 hover:bg-slate-50 dark:bg-paper-2 dark:hover:bg-elevated rounded-xl border border-slate-200/80 dark:border-line focus-within:border-sky-500 dark:focus-within:border-tide focus-within:bg-white dark:focus-within:bg-elevated focus-within:ring-2 focus-within:ring-sky-100 dark:focus-within:ring-tide/20 transition-all">
+                  <label className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-ink-3">
+                    <MapPin className="w-2.5 h-2.5 text-sky-600 dark:text-tide" />
                     <span>Shoreline or Keyword</span>
                   </label>
                   <input
@@ -266,7 +276,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Kudle Cliff, Om Beach, Half Moon, WiFi..."
-                    className="w-full text-xs sm:text-sm font-medium bg-transparent focus:outline-none placeholder:text-slate-400 mt-0.5 text-slate-900"
+                    className="w-full text-xs sm:text-sm font-medium bg-transparent focus:outline-none placeholder:text-slate-400 dark:placeholder:text-ink-3 mt-0.5 text-slate-900 dark:text-ink"
                   />
                 </div>
 
@@ -306,20 +316,20 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
             </form>
 
             {/* Micro Trust & Reassurance Badges with Colorful 2027 Icons */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-1 text-[11px] text-slate-700 font-medium">
-              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-1 text-[11px] text-slate-700 dark:text-ink-2 font-medium">
+              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs dark:bg-elevated/90 dark:border-line">
                 <ColorfulIcon type="hold" size="xs" className="rounded-md" />
                 <span>20% Offline Hold</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs dark:bg-elevated/90 dark:border-line">
                 <ColorfulIcon type="whatsapp" size="xs" className="rounded-md" />
                 <span>Direct WhatsApp Hosts</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs dark:bg-elevated/90 dark:border-line">
                 <ColorfulIcon type="trail" size="xs" className="rounded-md" />
                 <span>Verified Trailheads</span>
               </div>
-              <div className="hidden sm:flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs">
+              <div className="hidden sm:flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs dark:bg-elevated/90 dark:border-line">
                 <ColorfulIcon type="star" size="xs" className="rounded-md" />
                 <span>4.9/5 Guest Experience</span>
               </div>
@@ -332,16 +342,19 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
       <Marquee speed="32s" className="border-y border-line py-3">
         {['Kudle Beach', 'Om Beach', 'Half Moon Cove', 'Paradise Beach', 'Main Beach', 'Cliff Trails', 'Ferry Crossings', 'Family-Hosted Stays'].map(
           (t) => (
-            <span key={t} className="flex items-center gap-8 font-display text-lg font-medium italic text-ink-3">
+            <span
+              key={t}
+              className="flex items-center gap-8 font-display text-lg font-medium italic text-ink-3 dark:text-ink dark:drop-shadow-[0_0_12px_rgba(95,201,194,0.25)]"
+            >
               {t}
-              <span className="text-tide-glow not-italic">·</span>
+              <span className="text-tide-glow not-italic dark:text-tide">·</span>
             </span>
           ),
         )}
       </Marquee>
 
       {/* 3. 2026 CURATED SANCTUARIES (Responsive: Mobile Studio Cards & Desktop Bento Grid) */}
-      <section className="space-y-6">
+      <section ref={listingsRef} className="scroll-mt-24 space-y-6">
         {/* Modern 2026 Section Header & Floating Control Bar */}
         <div className="space-y-4 pb-4 border-b border-slate-200/80">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -356,60 +369,34 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
               </p>
             </div>
 
-            {/* Unified Floating Filter & View Control Pill Bar */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              {/* Quick Sort Dropdown / Segmented Pill */}
-              <div className="inline-flex items-center bg-elevated p-1 rounded-2xl border border-line text-xs font-semibold text-ink-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSortBy('recommended')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    sortBy === 'recommended'
-                      ? 'bg-tide text-white shadow-xs'
-                      : 'text-ink-2 hover:text-ink hover:bg-paper-2'
-                  }`}
-                >
-                  Curated
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSortBy('rating')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    sortBy === 'rating'
-                      ? 'bg-tide text-white shadow-xs'
-                      : 'text-ink-2 hover:text-ink hover:bg-paper-2'
-                  }`}
-                >
-                  Top Rated ⭐
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSortBy(sortBy === 'price_asc' ? 'price_desc' : 'price_asc')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 ${
-                    sortBy === 'price_asc' || sortBy === 'price_desc'
-                      ? 'bg-tide text-white shadow-xs'
-                      : 'text-ink-2 hover:text-ink hover:bg-paper-2'
-                  }`}
-                  title="Toggle Price Low to High / High to Low"
-                >
-                  <span>Price</span>
-                  <span className="text-[10px]">{sortBy === 'price_desc' ? '↘' : '↗'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSortBy('beach')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    sortBy === 'beach'
-                      ? 'bg-tide text-white shadow-xs'
-                      : 'text-ink-2 hover:text-ink hover:bg-paper-2'
-                  }`}
-                >
-                  Shore 🚶
-                </button>
+            {/* Beach filters + Filters button on the same line */}
+            <div className="flex w-full items-center gap-2 md:w-auto">
+              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1 scrollbar-none md:flex-none">
+                {[
+                  { id: 'all', label: 'All Gokarna' },
+                  { id: 'kudle', label: 'Kudle Beach' },
+                  { id: 'om', label: 'Om Beach' },
+                  { id: 'halfMoon', label: 'Half Moon' },
+                  { id: 'paradise', label: 'Paradise Beach' },
+                  { id: 'mainBeach', label: 'Main Beach / Town' },
+                ].map((b) => {
+                  const isSelected = selectedBeach === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setSelectedBeach(b.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-tide text-white border-tide shadow-xs font-bold'
+                          : 'bg-elevated text-ink-2 border-line-2 hover:border-tide hover:text-ink'
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  );
+                })}
               </div>
-              </div>
-
               <div className="relative shrink-0" ref={filterRef}>
                 <button
                   type="button"
@@ -554,34 +541,6 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
             </div>
           </div>
 
-          {/* Shoreline Beach Fast Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {[
-              { id: 'all', label: 'All Gokarna' },
-              { id: 'kudle', label: 'Kudle Beach' },
-              { id: 'om', label: 'Om Beach' },
-              { id: 'halfMoon', label: 'Half Moon' },
-              { id: 'paradise', label: 'Paradise Beach' },
-              { id: 'mainBeach', label: 'Main Beach / Town' },
-            ].map((b) => {
-              const isSelected = selectedBeach === b.id;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => setSelectedBeach(b.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer border ${
-                    isSelected
-                      ? 'bg-tide text-white border-tide shadow-xs font-bold'
-                      : 'bg-elevated text-ink-2 border-line-2 hover:border-tide hover:text-ink'
-                  }`}
-                >
-                  {b.label}
-                </button>
-              );
-            })}
-          </div>
-
         </div>
 
         {loading ? (
@@ -640,8 +599,8 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                           </span>
                           <span className="px-2.5 py-1 bg-white/95 backdrop-blur-md text-slate-800 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs">
                             <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-400" />
-                            <span>{stay.rating}</span>
-                            <span className="text-slate-400 font-normal">({stay.reviews_count})</span>
+                            <span>{stay.reviews_count > 0 ? stay.rating : 'New'}</span>
+                            <span className="text-slate-400 font-normal">{stay.reviews_count > 0 ? `(${stay.reviews_count})` : ''}</span>
                           </span>
                         </div>
 
@@ -850,8 +809,10 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                                   <span>•</span>
                                   <div className="flex items-center gap-1 font-semibold text-amber-300">
                                     <Star className="w-3.5 h-3.5 fill-amber-300" />
-                                    <span>{stay.rating}</span>
-                                    <span className="text-white/70 font-normal">({stay.reviews_count} reviews)</span>
+                                    <span>{stay.reviews_count > 0 ? stay.rating : 'New'}</span>
+                                    <span className="text-white/70 font-normal">
+                                      {stay.reviews_count > 0 ? `(${stay.reviews_count} reviews)` : '(no reviews yet)'}
+                                    </span>
                                   </div>
                                 </div>
 
@@ -963,8 +924,8 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <Star className="w-3 h-3 text-amber-500 fill-amber-400" />
-                                    <span className="font-semibold text-slate-800">{stay.rating}</span>
-                                    <span className="text-slate-400">({stay.reviews_count})</span>
+                                    <span className="font-semibold text-slate-800">{stay.reviews_count > 0 ? stay.rating : 'New'}</span>
+                                    <span className="text-slate-400">{stay.reviews_count > 0 ? `(${stay.reviews_count})` : ''}</span>
                                   </div>
                                 </div>
 
@@ -1103,8 +1064,8 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Star className="w-3 h-3 text-amber-500 fill-amber-400" />
-                                  <span className="font-semibold text-slate-800">{stay.rating}</span>
-                                  <span className="text-slate-400">({stay.reviews_count})</span>
+                                  <span className="font-semibold text-slate-800">{stay.reviews_count > 0 ? stay.rating : 'New'}</span>
+                                  <span className="text-slate-400">{stay.reviews_count > 0 ? `(${stay.reviews_count})` : ''}</span>
                                 </div>
                               </div>
 
@@ -1246,7 +1207,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                               </div>
                               <div className="flex items-center gap-1">
                                 <Star className="w-3 h-3 text-amber-500 fill-amber-400" />
-                                <span className="font-semibold text-slate-800">{stay.rating}</span>
+                                <span className="font-semibold text-slate-800">{stay.reviews_count > 0 ? stay.rating : 'New'}</span>
                                 <span className="text-slate-400">({stay.reviews_count})</span>
                               </div>
                             </div>
@@ -1355,8 +1316,10 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                               <div className="flex items-center gap-2 text-xs text-slate-500">
                                 <span className="font-semibold text-slate-800 flex items-center gap-1">
                                   <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                                  <span>{stay.rating}</span>
-                                  <span className="text-slate-400 font-normal">({stay.reviews_count} reviews)</span>
+                                  <span>{stay.reviews_count > 0 ? stay.rating : 'New'}</span>
+                                  <span className="text-slate-400 font-normal">
+                                    {stay.reviews_count > 0 ? `(${stay.reviews_count} reviews)` : '(no reviews yet)'}
+                                  </span>
                                 </span>
                                 <span>•</span>
                                 <span className="text-slate-600">{stay.location_display}, Gokarna</span>

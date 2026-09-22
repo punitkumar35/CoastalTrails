@@ -1,7 +1,5 @@
 import { initDatabase, run } from './index.js';
 
-const day = (n) => new Date(Date.now() + n * 86400000).toISOString().split('T')[0];
-
 const IMG = {
   beach: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
   house: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=80',
@@ -37,7 +35,6 @@ const homestays = [
     images: [IMG.beach, IMG.house, IMG.interior],
     badges: ['Cliff Edge', 'Sunset View', 'Family Host'],
     amenities: ['Sunset Balcony & Hammock', 'Mosquito Netting', 'Home-cooked South Indian Breakfast', 'Scooter Parking Available', 'Fast WiFi'],
-    blocked_dates: [day(3), day(4)],
   },
   {
     id: 'gokarna-2',
@@ -58,7 +55,6 @@ const homestays = [
     images: [IMG.shore, IMG.hotel, IMG.beach],
     badges: ['Beachfront', 'Cafe Attached', 'Surfboard Rental'],
     amenities: ['Direct Beach Access (30 seconds)', 'Attached Open-Sky Bathroom', 'Ceiling Fan & Power Backup', 'Cafe Serving Nutella Pancakes & Chai', 'Yoga Mats Available'],
-    blocked_dates: [day(1), day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-3',
@@ -79,7 +75,6 @@ const homestays = [
     images: [IMG.beach, IMG.house],
     badges: ['Off-Grid Eco', 'Starlit Sky', 'Boat Drop Included'],
     amenities: ['Solar Powered Lighting', 'Fresh Spring Well Water', 'Organic Coconut Grove Garden', 'Trek Guide & Boat Pickup', 'Complimentary Beach Bonfire'],
-    blocked_dates: [day(1), day(2), day(3)],
   },
   {
     id: 'gokarna-4',
@@ -100,7 +95,6 @@ const homestays = [
     images: [IMG.exterior, IMG.interior],
     badges: ['Family Friendly', 'Fast WiFi', 'Kitchen Access'],
     amenities: ['High-Speed Fiber Internet (100 Mbps)', 'Traditional Red Oxide Flooring', 'Equipped Kitchenette', 'Air Conditioning in Master Room', 'Free Parking on Premises'],
-    blocked_dates: [day(1), day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-5',
@@ -121,7 +115,6 @@ const homestays = [
     images: [IMG.camp, IMG.trail],
     badges: ['Boutique Camp', 'Ocean View', 'Hammock Zone'],
     amenities: ['Elevated Weatherproof Pod Bedding', 'Communal Beach Cafe & Chill Lounge', 'Shared Clean Washrooms', 'Charging Lockers Available', 'Daily Sunset Acoustic Jam'],
-    blocked_dates: [day(2), day(3)],
   },
   {
     id: 'gokarna-6',
@@ -142,7 +135,6 @@ const homestays = [
     images: [IMG.resort, IMG.bedroom, IMG.house],
     badges: ['Sunset View', 'Fast WiFi', 'Family Host'],
     amenities: ['Rooftop Yoga Shala', 'Vegetarian Breakfast Included', 'Fast WiFi', 'Shared Reading Lounge', 'Laundry Service'],
-    blocked_dates: [day(1), day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-7',
@@ -163,7 +155,6 @@ const homestays = [
     images: [IMG.beach, IMG.hotel],
     badges: ['Beachfront', 'Surfboard Rental', 'Kitchen Access'],
     amenities: ['Beachfront Rooms', 'Surfboard & Wetsuit Rental', 'Outdoor Shower', 'Beach Towels Provided', 'Chai & Snack Bar'],
-    blocked_dates: [day(1), day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-8',
@@ -184,7 +175,6 @@ const homestays = [
     images: [IMG.house, IMG.interior],
     badges: ['Off-Grid Eco', 'Starlit Sky', 'Couples Favorite'],
     amenities: ['Telescope & Sky Deck', 'Solar Power & USB Charging', 'Compost Toilet', 'Fresh Water Tank', 'Campfire Pit'],
-    blocked_dates: [day(1), day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-9',
@@ -205,7 +195,6 @@ const homestays = [
     images: [IMG.exterior, IMG.bedroom],
     badges: ['Family Host', 'Kitchen Access', 'Fast WiFi'],
     amenities: ['Temple View Courtyard', 'Filtered Drinking Water', 'Hot Water Geyser', 'Fast WiFi', 'Bicycle Rentals Nearby'],
-    blocked_dates: [day(1), day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-10',
@@ -226,7 +215,6 @@ const homestays = [
     images: [IMG.camp, IMG.resort],
     badges: ['Family Friendly', 'Beachfront', 'Sunset View'],
     amenities: ['Two Double Beds', 'Family Kitchen Meals', 'Shaded Sit-Out Porch', 'Safe Swimming Cove', 'Board Games & Cards'],
-    blocked_dates: [day(1), day(3), day(4)],
   },
   {
     id: 'gokarna-11',
@@ -247,7 +235,6 @@ const homestays = [
     images: [IMG.villa, IMG.resort, IMG.bedroom],
     badges: ['Cliff Edge', 'Sunset View', 'Fast WiFi'],
     amenities: ['Private Sea-Facing Terrace', 'Infinity Dipping Pool', 'Fast WiFi', 'Minibar', 'Daily Housekeeping'],
-    blocked_dates: [day(2), day(3), day(4)],
   },
   {
     id: 'gokarna-12',
@@ -268,7 +255,6 @@ const homestays = [
     images: [IMG.exterior, IMG.bedroom],
     badges: ['Budget Friendly', 'Kitchen Access'],
     amenities: ['Shared Guest Kitchen', 'Common Hammock Garden', '24h Check-in', 'Lockers', 'Cafe Strip 1 Min Away'],
-    blocked_dates: [day(1), day(2), day(3)],
   },
 ];
 
@@ -327,69 +313,24 @@ const routes = [
   },
 ];
 
-const bookings = [
-  {
-    id: 'booking-demo-1',
-    reference_code: 'GK-782941',
-    homestay_id: 'gokarna-1',
-    user_name: 'Punit Sharma',
-    user_phone: '+919876543210',
-    check_in: day(5),
-    check_out: day(7),
-    guests_count: 2,
-    total_amount: 4400,
-    advance_paid: 880,
-    balance_payable_at_property: 3520,
-    status: 'confirmed',
-    hold_expires_at: new Date(Date.now() + 86400000).toISOString(),
-  },
-  {
-    id: 'booking-demo-2',
-    reference_code: 'GK-913482',
-    homestay_id: 'gokarna-5',
-    user_name: 'Ananya Rao',
-    user_phone: '+919812345678',
-    check_in: day(9),
-    check_out: day(12),
-    guests_count: 3,
-    total_amount: 3600,
-    advance_paid: 720,
-    balance_payable_at_property: 2880,
-    status: 'awaiting_host',
-    hold_expires_at: new Date(Date.now() + 2 * 86400000).toISOString(),
-  },
-  {
-    id: 'booking-demo-3',
-    reference_code: 'GK-654127',
-    homestay_id: 'gokarna-10',
-    user_name: 'Vikram Malhotra',
-    user_phone: '+919900123456',
-    check_in: day(14),
-    check_out: day(17),
-    guests_count: 4,
-    total_amount: 6900,
-    advance_paid: 1380,
-    balance_payable_at_property: 5520,
-    status: 'confirmed',
-    hold_expires_at: new Date(Date.now() + 3 * 86400000).toISOString(),
-  },
-];
-
 export async function seed() {
   console.log('--- Initializing and Seeding Gokarna Database ---');
   await initDatabase();
 
-  await run(`INSERT OR IGNORE INTO users (id, phone, name, email, role) VALUES 
+  await run(`INSERT IGNORE INTO users (id, phone, name, email, role) VALUES 
     ('user-1', '+919876543210', 'Punit Sharma', 'punit@gokarnaconnect.in', 'traveler'),
     ('host-1', '+919845123091', 'Manjunath Hegde', 'kudle.cottages@gmail.com', 'host'),
     ('admin-1', '+919000000000', 'Gokarna Admin', 'admin@gokarnaconnect.in', 'admin')
   `);
 
+  // Remove demo bookings first so REPLACE on homestays cannot hit FK constraints
+  await run(`DELETE FROM bookings`);
+
   for (const h of homestays) {
     await run(
-      `INSERT OR REPLACE INTO homestays 
-        (id, title, subtitle, location, location_display, price_per_night, rating, reviews_count, host_name, host_whatsapp, is_host_verified, walking_minutes_to_beach, total_rooms, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `REPLACE INTO homestays 
+        (id, title, subtitle, location, location_display, price_per_night, rating, reviews_count, host_name, host_whatsapp, is_host_verified, walking_minutes_to_beach, total_rooms, availability_listed, description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       [
         h.id,
         h.title,
@@ -422,16 +363,24 @@ export async function seed() {
     for (const b of h.badges) {
       await run(`INSERT INTO homestay_badges (homestay_id, badge) VALUES (?, ?)`, [h.id, b]);
     }
+  }
 
-    await run(`DELETE FROM room_unavailability WHERE homestay_id = ?`, [h.id]);
-    for (const d of h.blocked_dates) {
-      await run(`INSERT OR IGNORE INTO room_unavailability (homestay_id, blocked_date, reason) VALUES (?, ?, 'booking')`, [h.id, d]);
-    }
+  // Enclaves power the admin dashboard grouping
+  const enclaves = [
+    { id: 'kudle', label: 'Kudle Beach', sort_order: 1 },
+    { id: 'om', label: 'Om Beach', sort_order: 2 },
+    { id: 'halfmoon', label: 'Half Moon Cove', sort_order: 3 },
+    { id: 'paradise', label: 'Paradise Beach', sort_order: 4 },
+    { id: 'mainbeach', label: 'Main Beach', sort_order: 5 },
+    { id: 'town', label: 'Gokarna Town', sort_order: 6 },
+  ];
+  for (const e of enclaves) {
+    await run('REPLACE INTO enclaves (id, label, sort_order) VALUES (?, ?, ?)', [e.id, e.label, e.sort_order]);
   }
 
   for (const r of routes) {
     await run(
-      `INSERT OR REPLACE INTO transit_routes 
+      `REPLACE INTO transit_routes 
         (id, start_point, start_subtext, destination, destination_subtext, distance_km, walking_mins, scooter_mins, car_mins, bus_mins, active_mode)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -450,31 +399,9 @@ export async function seed() {
     );
   }
 
-  await run(`DELETE FROM bookings`);
-  for (const b of bookings) {
-    await run(
-      `INSERT OR IGNORE INTO bookings 
-        (id, reference_code, homestay_id, user_name, user_phone, check_in, check_out, guests_count, total_amount, advance_paid, balance_payable_at_property, status, hold_expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        b.id,
-        b.reference_code,
-        b.homestay_id,
-        b.user_name,
-        b.user_phone,
-        b.check_in,
-        b.check_out,
-        b.guests_count,
-        b.total_amount,
-        b.advance_paid,
-        b.balance_payable_at_property,
-        b.status,
-        b.hold_expires_at,
-      ]
-    );
-  }
-
-  console.log(`Database seeded successfully with ${homestays.length} Gokarna stays, ${routes.length} routes, and ${bookings.length} sample bookings!`);
+  console.log(
+    `Database seeded successfully with ${homestays.length} Gokarna stays and ${routes.length} routes. Bookings are created only by real users.`
+  );
 }
 
 if (process.argv[1] && process.argv[1].endsWith('seed.js')) {

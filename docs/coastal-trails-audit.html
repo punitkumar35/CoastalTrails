@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoastalTrails — admin-room-sync Full Audit</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#ffffff; --ink:#182230; --muted:#5f6b7a;
+    --line:#dce3ec; --primary:#1565c0; --primary2:#0d47a1;
+    --good:#1b7f3a; --good-bg:#eaf7ef; --bad:#b42318; --bad-bg:#fff0ee;
+    --warn:#a15c00; --warn-bg:#fff6df; --info-bg:#edf5ff;
+    --code:#111827; --shadow:0 10px 28px rgba(22,34,51,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+  .wrap{max-width:1180px;margin:auto;padding:28px 18px 70px}
+  header{background:linear-gradient(135deg,#0d47a1,#1565c0 58%,#42a5f5);color:#fff;border-radius:20px;padding:38px;box-shadow:var(--shadow);margin-bottom:24px}
+  header h1{margin:0 0 8px;font-size:32px}
+  header p{margin:6px 0;opacity:.95}
+  .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.16);font-size:13px;margin:5px 6px 0 0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;margin:18px 0;box-shadow:var(--shadow)}
+  h2{margin:0 0 14px;color:var(--primary2);font-size:25px}
+  h3{margin:22px 0 10px;font-size:19px}
+  h4{margin:18px 0 8px;font-size:16px}
+  p{margin:9px 0}
+  .muted{color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+  .stat{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fbfcfe}
+  .stat b{display:block;font-size:25px;margin-bottom:3px}
+  .ok{background:var(--good-bg);border-color:#bde2ca}
+  .bad{background:var(--bad-bg);border-color:#f0c6c1}
+  .warn{background:var(--warn-bg);border-color:#efd49c}
+  .info{background:var(--info-bg);border-color:#c7ddfb}
+  code{font-family:Consolas,Monaco,monospace;background:#eef2f6;padding:2px 5px;border-radius:5px}
+  pre{background:var(--code);color:#e5e7eb;padding:16px;border-radius:12px;overflow:auto;font:13px/1.55 Consolas,Monaco,monospace}
+  table{width:100%;border-collapse:collapse;margin:14px 0}
+  th,td{padding:10px 11px;border:1px solid var(--line);vertical-align:top;text-align:left}
+  th{background:#f6f8fb}
+  .pill{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700}
+  .pill.ok{color:#146c31}.pill.bad{color:#9c1c14}.pill.warn{color:#8a5300}.pill.info{color:#164f91}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:15px 0}
+  .box{padding:12px 14px;border:2px solid #b9c8db;border-radius:12px;background:#fff;min-width:150px;text-align:center;font-weight:700}
+  .box.primary{border-color:#77a7df;background:#edf5ff}
+  .box.good{border-color:#8dcca0;background:#eefaf1}
+  .box.warn{border-color:#e5bf73;background:#fff8e7}
+  .arrow{font-size:22px;color:#6a7685;font-weight:700}
+  .diagram{border:1px dashed #c8d1dc;border-radius:14px;padding:14px;background:#fbfcfe;overflow:auto}
+  .diagram pre{margin:0;background:transparent;color:#273244;border:none;padding:4px;font-size:13px}
+  .checklist{columns:2;column-gap:34px}
+  .checklist div{break-inside:avoid;margin:7px 0}
+  .toc a{color:var(--primary);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  .note{border-left:4px solid var(--primary);padding:12px 14px;background:#f4f8fe;border-radius:8px;margin:12px 0}
+  footer{color:var(--muted);font-size:13px;padding:10px 4px}
+  @media(max-width:700px){
+    header{padding:26px 20px}
+    header h1{font-size:26px}
+    section{padding:20px}
+    .checklist{columns:1}
+    .box{min-width:125px}
+  }
+  @media print{
+    body{background:#fff}
+    header,section{box-shadow:none}
+    section{break-inside:avoid}
+    .wrap{max-width:none;padding:0}
+    a{color:inherit}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>CoastalTrails — admin-room-sync Full Project Audit</h1>
+  <p>Complete discussion, architecture, database design, booking flow, admin room synchronization, fixes, and implementation order.</p>
+  <div>
+    <span class="badge">Branch: admin-room-sync</span>
+    <span class="badge">User App: localhost:3000</span>
+    <span class="badge">Admin: localhost:3002</span>
+    <span class="badge">Shared Database Architecture</span>
+  </div>
+</header>
+
+<section class="toc">
+  <h2>Contents</h2>
+  <div class="grid">
+    <div>
+      <a href="#architecture">1. Current Architecture</a><br>
+      <a href="#implemented">2. What Is Already Implemented</a><br>
+      <a href="#issues">3. Important Problems / Missing Pieces</a><br>
+      <a href="#database">4. Recommended Database Design</a><br>
+      <a href="#booking-flow">5. Booking Flow</a>
+    </div>
+    <div>
+      <a href="#room-sync">6. Admin Room Synchronization</a><br>
+      <a href="#lifecycle">7. Booking Lifecycle</a><br>
+      <a href="#user">8. User-side Functions</a><br>
+      <a href="#admin">9. Admin-side Functions</a><br>
+      <a href="#order">10. Exact Fix Order</a>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <h2>1. Current Architecture</h2>
+  <div class="diagram">
+<pre>
+                         ┌──────────────────────┐
+                         │     USER WEB APP     │
+                         │    localhost:3000    │
+                         │     React + Vite     │
+                         └──────────┬───────────┘
+                                    │
+                                    │ HTTP / Bearer Token
+                                    ▼
+                         ┌──────────────────────┐
+                         │    EXPRESS API      │
+                         │    localhost:5000    │
+                         └──────────┬───────────┘
+                                    │
+             ┌──────────────────────┼──────────────────────┐
+             │                      │                      │
+             ▼                      ▼                      ▼
+        Authentication          Bookings               Homestays
+         /api/auth             /api/bookings          /api/homestays
+             │                      │                      │
+             └──────────────┬───────┴──────────────┬──────┘
+                            ▼                      ▼
+                    ┌─────────────────────────────────────┐
+                    │              MySQL                  │
+                    │ users / homestays / room_state     │
+                    │ room_status / bookings / reviews   │
+                    │ sessions / availability data       │
+                    └──────────────────┬──────────────────┘
+                                       │
+                                       ▼
+                           ┌──────────────────────┐
+                           │   ADMIN API / PANEL  │
+                           │ /api/admin           │
+                           │ bookings / stays     │
+                           │ room status / state  │
+                           └──────────────────────┘
+</pre>
+  </div>
+  <p class="muted">The key architectural idea is a shared database: the user application and admin side should see the same booking, room, and availability state.</p>
+</section>
+
+<section id="implemented">
+  <h2>2. What Is Already Implemented</h2>
+  <div class="grid">
+    <div class="stat ok"><b>✅ Authentication</b>Signup, bcrypt password hashing, login, sessions, logout.</div>
+    <div class="stat ok"><b>✅ Homestays</b>Homestay data and availability endpoints are present.</div>
+    <div class="stat ok"><b>✅ Availability</b>Existing booking / blocked / maintenance logic is fairly developed.</div>
+    <div class="stat ok"><b>✅ Room State</b>Room information and room status concepts already exist.</div>
+    <div class="stat ok"><b>✅ Booking API</b>Booking creation, validation, reference codes, date checks.</div>
+    <div class="stat ok"><b>✅ Reviews</b>Create, edit, delete, media, rating aggregation.</div>
+    <div class="stat ok"><b>✅ Admin APIs</b>Dashboard-style data, booking data, room-state/status endpoints.</div>
+    <div class="stat warn"><b>⚠️ Room Assignment</b>Room display/allocation exists but should become persistent booking state.</div>
+  </div>
+
+  <h3>Authentication flow already present</h3>
+  <div class="flow">
+    <div class="box">Signup</div><div class="arrow">→</div>
+    <div class="box">bcrypt hash</div><div class="arrow">→</div>
+    <div class="box">users table</div><div class="arrow">→</div>
+    <div class="box primary">Session token</div><div class="arrow">→</div>
+    <div class="box good">Authenticated user</div>
+  </div>
+
+  <h3>Availability system already present</h3>
+  <p>Your branch already has the concepts of room state/status, bookings, and availability calculations. Do not throw this part away and rebuild it from zero.</p>
+  <div class="flow">
+    <div class="box">Rooms</div><div class="arrow">+</div>
+    <div class="box">Bookings</div><div class="arrow">+</div>
+    <div class="box">Blocked / Maintenance</div><div class="arrow">→</div>
+    <div class="box good">Availability Service</div><div class="arrow">→</div>
+    <div class="box primary">User + Admin</div>
+  </div>
+
+  <h3>Review system already present</h3>
+  <p>Review creation, edit/delete ownership checks, media and aggregate rating logic are already part of the branch.</p>
+  <div class="note"><b>But:</b> the business rule should be tightened so only a user with a completed stay can review that homestay.</div>
+</section>
+
+<section id="issues">
+  <h2>3. Important Problems / Missing Pieces</h2>
+
+  <div class="stat bad">
+    <b>❌ Critical 1 — Admin API authorization</b>
+    The admin endpoints need explicit authentication + admin-role checks. Never rely on the admin UI alone for security.
+  </div>
+  <div class="stat bad" style="margin-top:12px">
+    <b>❌ Critical 2 — Booking API authorization</b>
+    User-facing booking endpoints must use the authenticated user from the server session/token, not values sent by the browser.
+  </div>
+  <div class="stat bad" style="margin-top:12px">
+    <b>❌ Critical 3 — bookings need a real user relationship</b>
+    Add <code>bookings.user_id</code> so the database knows which authenticated user owns the booking.
+  </div>
+  <div class="stat bad" style="margin-top:12px">
+    <b>❌ Critical 4 — Room assignment must be persistent</b>
+    A booking should permanently identify the assigned room instead of relying only on a recalculated display allocation.
+  </div>
+  <div class="stat bad" style="margin-top:12px">
+    <b>❌ Critical 5 — Payment verification is missing from the booking lifecycle</b>
+    Calculating an advance amount in the database is not the same thing as proving payment was received.
+  </div>
+  <div class="stat warn" style="margin-top:12px">
+    <b>⚠️ Important — Reviews need booking verification</b>
+    Add <code>reviews.booking_id</code> and require a completed booking before allowing a review.
+  </div>
+
+  <h3>Problem: current booking identity model</h3>
+  <div class="flow">
+    <div class="box warn">Browser sends<br>user_name / user_phone</div>
+    <div class="arrow">→</div>
+    <div class="box bad">Server trusts client data</div>
+  </div>
+  <p>This should become:</p>
+  <div class="flow">
+    <div class="box primary">Bearer / Session token</div><div class="arrow">→</div>
+    <div class="box">sessions</div><div class="arrow">→</div>
+    <div class="box">users</div><div class="arrow">→</div>
+    <div class="box good">req.user.id</div><div class="arrow">→</div>
+    <div class="box good">booking.user_id</div>
+  </div>
+
+  <h3>Problem: user booking vs admin booking access</h3>
+  <table>
+    <tr><th>Role</th><th>Endpoint behaviour</th></tr>
+    <tr><td>User</td><td><code>/api/bookings</code> should return only the authenticated user's bookings.</td></tr>
+    <tr><td>Admin</td><td><code>/api/admin/bookings</code> should be able to see all bookings.</td></tr>
+  </table>
+
+  <h3>Problem: payment status</h3>
+  <p>Do not mix booking status and payment status.</p>
+  <div class="grid">
+    <div class="stat info"><b>Booking status</b>pending_payment, awaiting_host, confirmed, checked_in, completed, cancelled, declined, expired</div>
+    <div class="stat info"><b>Payment status</b>pending, paid, failed, partially_paid, refunded</div>
+  </div>
+</section>
+
+<section id="database">
+  <h2>4. Recommended Database Design</h2>
+  <p>The goal is not to rebuild everything. Make a few important relationships explicit.</p>
+
+  <div class="diagram">
+<pre>
+                  ┌───────────────┐
+                  │     USERS     │
+                  │ id (PK)       │
+                  │ name          │
+                  │ phone         │
+                  │ email         │
+                  │ role          │
+                  └───────┬───────┘
+                          │
+              1           │           *
+                          ▼
+                  ┌───────────────┐
+                  │    BOOKINGS   │
+                  │ id (PK)       │
+                  │ user_id (FK)  │
+                  │ homestay_id   │
+                  │ room_id       │
+                  │ check_in      │
+                  │ check_out     │
+                  │ guests_count  │
+                  │ total_amount  │
+                  │ status        │
+                  │ payment_status│
+                  └───┬────────┬──┘
+                      │        │
+                   *  │        │  0..1
+                      ▼        ▼
+                 ┌────────┐  ┌────────────┐
+                 │ ROOMS  │  │  REVIEWS   │
+                 │ id     │  │ id         │
+                 │ stay_id│  │ user_id    │
+                 │ number │  │ booking_id │
+                 │ type   │  │ stay_id    │
+                 └───┬────┘  │ rating     │
+                     │        └────────────┘
+                     │
+                     ▼
+               ┌────────────┐
+               │ROOM_STATUS │
+               │ date       │
+               │ status     │
+               │ reason     │
+               └────────────┘
+
+                HOMESTAY
+                   │
+          ┌────────┼────────┐
+          ▼        ▼        ▼
+        ROOMS   BOOKINGS  REVIEWS
+</pre>
+  </div>
+
+  <h3>Minimum schema changes</h3>
+  <pre>
+bookings
+ ├── user_id          ← ADD / make foreign key
+ ├── room_id          ← preferably persistent assignment
+ ├── status
+ ├── payment_status   ← ADD
+ ├── payment_id       ← ADD
+ └── timestamps
+
+reviews
+ ├── user_id
+ ├── homestay_id
+ └── booking_id       ← ADD / make foreign key
+  </pre>
+
+  <h3>Core relationships</h3>
+  <div class="flow">
+    <div class="box">USER</div><div class="arrow">1 → *</div><div class="box">BOOKINGS</div>
+    <div class="arrow">* → 1</div><div class="box">HOMESTAY</div>
+  </div>
+  <div class="flow">
+    <div class="box">HOMESTAY</div><div class="arrow">1 → *</div><div class="box">ROOMS</div>
+    <div class="arrow">1 → *</div><div class="box">ROOM STATUS</div>
+  </div>
+  <div class="flow">
+    <div class="box">COMPLETED BOOKING</div><div class="arrow">→</div><div class="box good">REVIEW</div>
+  </div>
+</section>
+
+<section id="booking-flow">
+  <h2>5. Booking Flow to Implement</h2>
+  <div class="diagram">
+<pre>
+USER
+  ↓
+Open homestay
+  ↓
+Select check-in / check-out / guests
+  ↓
+Request availability
+  ↓
+┌──────────────────────┐
+│ Room available?      │
+└──────────┬───────────┘
+           │
+      ┌────┴────┐
+      │         │
+     NO        YES
+      │         │
+      ▼         ▼
+ Show error    Require login
+                  ↓
+             req.user.id
+                  ↓
+            Calculate price
+                  ↓
+            Create booking/hold
+                  ↓
+          payment_status=pending
+                  ↓
+               PAYMENT
+                  ↓
+          Payment verified?
+            ┌─────┴─────┐
+            │           │
+           NO          YES
+            │           │
+            ▼           ▼
+         Failed     Assign room
+                        ↓
+                     Booking
+                        ↓
+                Admin sees booking
+                        ↓
+                Room calendar updates
+                        ↓
+                    Check-in
+                        ↓
+                   Check-out
+                        ↓
+                    Completed
+                        ↓
+                    Review
+</pre>
+  </div>
+
+  <h3>Double-booking prevention</h3>
+  <p>Use the overlap rule:</p>
+  <pre>
+existing.checkIn &lt; newCheckOut
+AND
+existing.checkOut &gt; newCheckIn
+  </pre>
+  <p>If a conflicting active booking exists, reject the new booking.</p>
+
+  <h3>Date rules</h3>
+  <div class="grid">
+    <div class="stat ok"><b>✅</b> check-in before check-out</div>
+    <div class="stat bad"><b>❌</b> check-out equal to check-in</div>
+    <div class="stat bad"><b>❌</b> check-in after check-out</div>
+    <div class="stat bad"><b>❌</b> invalid/past dates according to your booking rules</div>
+  </div>
+
+  <h3>Price calculation</h3>
+  <div class="note">
+    Never trust the amount sent by the browser. The backend should calculate nights, price, fees/tax if applicable, and the final total from server-side data.
+  </div>
+  <pre>
+nights × server-side room/listing price = base amount
+base + fees + tax = total amount
+  </pre>
+</section>
+
+<section id="room-sync">
+  <h2>6. Admin Room Synchronization</h2>
+
+  <h3>Admin → User availability</h3>
+  <div class="diagram">
+<pre>
+ADMIN
+  │
+  ├── Block room
+  ├── Maintenance
+  └── Make available
+          │
+          ▼
+     ROOM STATUS
+          │
+          ▼
+ AVAILABILITY SERVICE
+          │
+          ▼
+      USER WEBSITE
+          │
+          ▼
+ Available room count changes
+</pre>
+  </div>
+
+  <h3>User booking → Admin room board</h3>
+  <div class="diagram">
+<pre>
+USER
+  │
+  ▼
+Check availability
+  │
+  ▼
+Find available room
+  │
+  ▼
+Create booking
+  │
+  ▼
+Persist assigned room
+  │
+  ▼
+Shared database
+  │
+  ▼
+ADMIN ROOM CALENDAR
+  │
+  ▼
+ROOM X = BOOKED
+</pre>
+  </div>
+
+  <h3>Example</h3>
+  <div class="grid">
+    <div class="stat">
+      <b>Room 1</b> 10–13 Oct → Booked
+    </div>
+    <div class="stat ok">
+      <b>Room 2</b> 10–13 Oct → Available
+    </div>
+    <div class="stat warn">
+      <b>Room 3</b> 10–13 Oct → Maintenance
+    </div>
+    <div class="stat ok">
+      <b>Room 4</b> 10–13 Oct → Available
+    </div>
+  </div>
+  <p>For a user booking 10–13 Oct, the backend should select a real available room and persist that assignment.</p>
+
+  <h3>Why persistent assignment matters</h3>
+  <p>If allocation is recalculated every time the admin page loads, a booking can appear to move between rooms. A production booking should have a stable room assignment once assigned.</p>
+</section>
+
+<section id="lifecycle">
+  <h2>7. Booking Lifecycle</h2>
+  <div class="flow">
+    <div class="box warn">PENDING PAYMENT</div><div class="arrow">→</div>
+    <div class="box primary">AWAITING HOST</div><div class="arrow">→</div>
+    <div class="box good">CONFIRMED</div><div class="arrow">→</div>
+    <div class="box primary">CHECKED IN</div><div class="arrow">→</div>
+    <div class="box good">COMPLETED</div><div class="arrow">→</div>
+    <div class="box">REVIEW</div>
+  </div>
+  <p>Side exits: pending → expired/cancelled; awaiting_host → declined; confirmed → cancelled according to your cancellation policy.</p>
+</section>
+
+<section id="user">
+  <h2>8. User-side Functions</h2>
+  <h3>Core user journey</h3>
+  <div class="flow">
+    <div class="box">Home</div><div class="arrow">→</div>
+    <div class="box">Browse</div><div class="arrow">→</div>
+    <div class="box">Listing Details</div><div class="arrow">→</div>
+    <div class="box">Dates / Guests</div><div class="arrow">→</div>
+    <div class="box">Availability</div><div class="arrow">→</div>
+    <div class="box">Login</div><div class="arrow">→</div>
+    <div class="box">Booking</div>
+  </div>
+
+  <h3>User pages/features to complete</h3>
+  <div class="checklist">
+    <div>☐ Home/search</div>
+    <div>☐ Listing details</div>
+    <div>☐ Date and guest selection</div>
+    <div>☐ Availability result</div>
+    <div>☐ Booking confirmation</div>
+    <div>☐ My bookings</div>
+    <div>☐ Booking details</div>
+    <div>☐ Cancel booking</div>
+    <div>☐ Profile</div>
+    <div>☐ Reviews</div>
+    <div>☐ Forgot password</div>
+    <div>☐ Loading states</div>
+    <div>☐ Empty states</div>
+    <div>☐ Error pages</div>
+    <div>☐ Mobile responsiveness</div>
+  </div>
+</section>
+
+<section id="admin">
+  <h2>9. Admin-side Functions</h2>
+  <div class="flow">
+    <div class="box primary">Admin Login</div><div class="arrow">→</div>
+    <div class="box">Verify admin role</div><div class="arrow">→</div>
+    <div class="box good">Dashboard</div>
+  </div>
+
+  <div class="grid">
+    <div class="stat"><b>Dashboard</b>Total users, listings, bookings, pending work, arrivals/departures, revenue/reporting when implemented.</div>
+    <div class="stat"><b>Listings</b>Add, edit, disable/enable, view details.</div>
+    <div class="stat"><b>Bookings</b>View, confirm/reject, cancel/refund according to business rules.</div>
+    <div class="stat"><b>Users</b>View, disable/enable, inspect booking history.</div>
+    <div class="stat"><b>Reviews</b>Moderate/remove according to policy; do not silently rewrite user content.</div>
+    <div class="stat"><b>Rooms</b>Status, maintenance, block/unblock, persistent booking assignment.</div>
+  </div>
+
+  <h3>Admin dashboard structure</h3>
+  <pre>
+Dashboard
+├── Overview
+├── Listings
+├── Bookings
+├── Users
+├── Reviews
+├── Payments
+├── Rooms / Room Calendar
+├── Reports
+└── Settings
+  </pre>
+
+  <h3>Search/filter/pagination</h3>
+  <p>For bookings, users, listings and reviews, add search, status filters and pagination. Do not load thousands of records into the browser at once.</p>
+</section>
+
+<section id="order">
+  <h2>10. Exact Fix Order</h2>
+
+  <table>
+    <tr><th>#</th><th>Fix</th><th>Priority</th><th>Why</th></tr>
+    <tr><td>1</td><td>Protect <code>/api/admin/*</code></td><td><span class="pill bad">CRITICAL</span></td><td>Admin endpoints must not be publicly callable.</td></tr>
+    <tr><td>2</td><td>Protect booking endpoints</td><td><span class="pill bad">CRITICAL</span></td><td>Booking ownership must come from authenticated identity.</td></tr>
+    <tr><td>3</td><td>Add <code>bookings.user_id</code></td><td><span class="pill bad">CRITICAL</span></td><td>Establish the real user → booking relationship.</td></tr>
+    <tr><td>4</td><td>Persist booking → room assignment</td><td><span class="pill bad">CRITICAL</span></td><td>Admin room board and user availability must stay synchronized.</td></tr>
+    <tr><td>5</td><td>Separate booking status and payment status</td><td><span class="pill warn">HIGH</span></td><td>Payment state is not the same as reservation state.</td></tr>
+    <tr><td>6</td><td>Add payment verification / payment record</td><td><span class="pill warn">HIGH</span></td><td>Do not mark money as paid merely because a booking request was created.</td></tr>
+    <tr><td>7</td><td>Add <code>reviews.booking_id</code></td><td><span class="pill warn">HIGH</span></td><td>Allow reviews only for real completed stays.</td></tr>
+    <tr><td>8</td><td>Complete user My Bookings + cancellation</td><td><span class="pill info">MEDIUM</span></td><td>Core customer lifecycle.</td></tr>
+    <tr><td>9</td><td>Finish admin room calendar</td><td><span class="pill info">MEDIUM</span></td><td>Make room synchronization visible and usable.</td></tr>
+    <tr><td>10</td><td>UX polish</td><td><span class="pill info">MEDIUM</span></td><td>Loading, empty states, confirmations, mobile layout, 404/500.</td></tr>
+  </table>
+
+  <h3>Recommended coding sequence</h3>
+  <pre>
+STEP 1
+  Admin auth middleware
+  User auth middleware on bookings
+
+STEP 2
+  bookings.user_id
+  reviews.booking_id
+
+STEP 3
+  booking ownership queries use req.user.id
+  admin queries can access all bookings
+
+STEP 4
+  persistent room assignment
+  booking.room_id / room_number
+
+STEP 5
+  payment_status
+  payment_id
+  payment verification
+
+STEP 6
+  completed booking → review permission
+
+STEP 7
+  admin room calendar ↔ user availability synchronization
+
+STEP 8
+  UI polish + search/filter/pagination
+  </pre>
+</section>
+
+<section>
+  <h2>11. Final Target Architecture</h2>
+  <div class="diagram">
+<pre>
+                         ┌────────────────────┐
+                         │       USERS        │
+                         │ traveler/host/admin│
+                         └─────────┬──────────┘
+                                   │
+                  ┌────────────────┴────────────────┐
+                  │                                 │
+                  ▼                                 ▼
+              BOOKINGS                           REVIEWS
+                  │                                 │
+                  │                                 │
+                  ▼                                 │
+                ROOMS ◄─────────────────────────────┘
+                  │
+                  ▼
+             ROOM STATUS
+                  │
+                  ▼
+          AVAILABILITY SERVICE
+             │           │
+             ▼           ▼
+      USER WEBSITE    ADMIN PANEL
+      localhost:3000 localhost:3002
+
+All of them use one consistent database state.
+  </pre>
+  </div>
+
+  <h3>Final checklist</h3>
+  <div class="checklist">
+    <div>☐ Authentication</div>
+    <div>☐ Admin authorization</div>
+    <div>☐ Booking authorization</div>
+    <div>☐ bookings.user_id</div>
+    <div>☐ Persistent room assignment</div>
+    <div>☐ Availability / overlap protection</div>
+    <div>☐ Payment status</div>
+    <div>☐ Payment verification</div>
+    <div>☐ reviews.booking_id</div>
+    <div>☐ Completed-stay review rule</div>
+    <div>☐ My bookings</div>
+    <div>☐ Cancellation lifecycle</div>
+    <div>☐ Admin booking management</div>
+    <div>☐ Room calendar</div>
+    <div>☐ Search + filters</div>
+    <div>☐ Pagination</div>
+    <div>☐ Loading states</div>
+    <div>☐ Empty states</div>
+    <div>☐ Error/404 pages</div>
+    <div>☐ Mobile responsive UI</div>
+  </div>
+
+  <div class="note">
+    <b>Most important:</b> do not rebuild the existing availability engine from scratch. Strengthen the relationships around it: authenticated user → booking → room → admin calendar, with proper server-side authorization.
+  </div>
+</section>
+
+<footer>
+  CoastalTrails — admin-room-sync audit document. This HTML is designed to be opened directly in a browser and printed to PDF if needed.
+</footer>
+
+</div>
+</body>
+</html>

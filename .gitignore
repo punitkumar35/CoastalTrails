@@ -51,6 +51,16 @@ website/client/*.log
 website/server/*.log
 website/client/.vite/
 
+# Admin dashboard build artifacts & runtime uploads
+Coastal-admin/dist/
+Coastal-admin/.vite/
+Coastal-admin/*.log
+website/server/uploads/
+
+# Secrets & local config
+.env
+website/server/.env
+
 # Local SQLite database — regenerate with `npm run seed`
 website/server/db/*.db
 website/server/db/*.db-shm
@@ -60,3 +70,6 @@ website/server/db/*.db-wal
 .codegraph/
 .omo/
 .playwright-mcp/
+Coastal-admin/.vite/
+Homestay-list/node_modules/
+Homestay-list/dist/

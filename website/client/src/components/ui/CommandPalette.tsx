@@ -7,8 +7,6 @@ import { springSoft } from '../../lib/motion';
 export interface CommandItem {
   id: string;
   label: string;
-  hint?: string;
-  group: string;
   onSelect: () => void;
 }
 
@@ -19,9 +17,7 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
-    return items.filter(
-      (i) => i.label.toLowerCase().includes(q) || i.group.toLowerCase().includes(q) || i.hint?.toLowerCase().includes(q),
-    );
+    return items.filter((i) => i.label.toLowerCase().includes(q));
   }, [items, query]);
 
   useEffect(() => {
@@ -101,11 +97,7 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
                       i === index ? 'bg-tide/10 text-tide' : 'text-ink-2',
                     )}
                   >
-                    <span className="flex items-center gap-3">
-                      <span className="font-mono text-xs uppercase tracking-wider text-ink-3">{item.group}</span>
-                      <span className="text-sm">{item.label}</span>
-                    </span>
-                    {item.hint ? <span className="text-xs text-ink-3">{item.hint}</span> : null}
+                    <span className="text-sm">{item.label}</span>
                   </button>
                 ))
               )}
