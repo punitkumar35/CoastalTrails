@@ -22,6 +22,8 @@ export const DatabaseStudioPage: React.FC = () => {
   const [newPrice, setNewPrice] = useState(2000);
   const [newHost, setNewHost] = useState('');
   const [newPhone, setNewPhone] = useState('+91');
+  const [newTotalRooms, setNewTotalRooms] = useState(3);
+  const [newPublishAvailability, setNewPublishAvailability] = useState(true);
 
   const fetchMetadata = async () => {
     try {
@@ -103,7 +105,8 @@ export const DatabaseStudioPage: React.FC = () => {
         host_whatsapp: newPhone,
         is_host_verified: 1,
         walking_minutes_to_beach: 2,
-        total_rooms: 3,
+        total_rooms: Math.max(1, Math.round(newTotalRooms)),
+        availability_listed: newPublishAvailability ? 1 : 0,
         description: 'Authentic coastal retreat steps from the Arabian sea.',
         imageUrls: ['https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=80'],
         amenities: ['High-Speed WiFi', 'Attached Bathroom', 'Fresh Spring Water'],
@@ -530,6 +533,37 @@ class ApiService {
                     className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-coastal-stone focus:outline-none focus:border-coastal-navy"
                     required
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-coastal-navy mb-1">Rooms available</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={newTotalRooms}
+                    onChange={(e) => setNewTotalRooms(Number(e.target.value))}
+                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-coastal-stone focus:outline-none focus:border-coastal-navy"
+                    required
+                  />
+                  <p className="mt-1 text-[10px] text-coastal-slate">Guests share these rooms per night — when all are booked, the dates show as sold out.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-coastal-navy mb-1">Publish availability</label>
+                  <label className="flex h-[42px] items-center gap-2 rounded-xl border border-coastal-stone px-3.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newPublishAvailability}
+                      onChange={(e) => setNewPublishAvailability(e.target.checked)}
+                      className="h-4 w-4 accent-coastal-terracotta"
+                    />
+                    <span className="text-xs font-semibold text-coastal-navy">
+                      {newPublishAvailability ? 'Visible & bookable' : 'Hidden until published'}
+                    </span>
+                  </label>
+                  <p className="mt-1 text-[10px] text-coastal-slate">If off, guests see "availability not published" instead of dates.</p>
                 </div>
               </div>
 

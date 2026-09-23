@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useLiveRefresh } from '../lib/live';
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowUpRight,
   BedDouble,
@@ -10,16 +12,21 @@ import {
   Compass,
   Footprints,
   Heart,
+  ImagePlus,
   MapPin,
   Minus,
   Moon,
+  PenLine,
   Plus,
   Share2,
   ShieldCheck,
   Star,
+  ThumbsUp,
+  Trash2,
   Waves,
+  X,
 } from 'lucide-react';
-import type { Homestay } from '../types';
+import type { Homestay, Review, ReviewSummary, User } from '../types';
 import { api } from '../services/api';
 import { CoastalMapView } from '../components/CoastalMapView';
 import { ColorfulIcon } from '../components/ColorfulIcon';
@@ -36,13 +43,34 @@ import { cn } from '../lib/cn';
 
 interface StayDetailPageProps {
   homestay?: Homestay | null;
+  currentUser?: User | null;
   onBack?: () => void;
   onBook?: (stay?: Homestay) => void;
   onNavigateRoute?: () => void;
+  onRequireAuth?: () => void;
 }
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80';
+
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/bmp', 'image/avif', 'image/tiff'];
+const MAX_REVIEW_PHOTO_BYTES = 5 * 1024 * 1024;
+
+function timeAgo(value: string): string {
+  const then = new Date(String(value).replace(' ', 'T')).getTime();
+  if (Number.isNaN(then)) return '';
+  const mins = Math.floor((Date.now() - then) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? '' : 's'} ago`;
+}
 
 function StatTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
@@ -75,7 +103,7 @@ function GoodToKnow({ icon, title, body }: { icon: ReactNode; title: string; bod
   );
 }
 
-export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavigateRoute }: StayDetailPageProps) {
+export function StayDetailPage({ homestay: propHomestay, currentUser = null, onBack, onBook, onNavigateRoute, onRequireAuth }: StayDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [homestay, setHomestay] = useState<Homestay | null>(propHomestay || null);
@@ -103,6 +131,14 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
     }
   }, [id, propHomestay]);
 
+  useLiveRefresh(() => {
+    if (!id) return;
+    api
+      .getHomestay(id)
+      .then(setHomestay)
+      .catch((err) => console.error('Failed to refresh homestay details:', err));
+  }, 20000);
+
   useEffect(() => {
     if (!homestay) return;
     try {
@@ -118,6 +154,194 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
   }, [homestay]);
 
   const [stayAvailability, setStayAvailability] = useState<Record<string, number>>({});
+  const [stayBlockedDates, setStayBlockedDates] = useState<Record<string, number>>({});
+  const [availabilityListed, setAvailabilityListed] = useState(true);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
+  const [helpfulReviewIds, setHelpfulReviewIds] = useState<number[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', body: '' });
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewMedia, setReviewMedia] = useState<{ dataUrl: string; type: 'image' }[]>([]);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
+
+  // Signing out closes any open review form and hides owner actions immediately
+  useEffect(() => {
+    if (!currentUser) {
+      setShowReviewForm(false);
+      setEditingReviewId(null);
+      setReviewMedia([]);
+    }
+  }, [currentUser]);
+
+  const myReview = currentUser ? reviews.find((r) => r.user_id && String(r.user_id) === currentUser.id) || null : null;
+
+  const openReviewForm = (existing?: Review) => {
+    setReviewError(null);
+    if (existing) {
+      setReviewForm({ rating: existing.rating, title: existing.title, body: existing.body });
+      setEditingReviewId(existing.id);
+    } else {
+      setReviewForm({ rating: 5, title: '', body: '' });
+      setEditingReviewId(null);
+      setReviewMedia([]);
+    }
+    setShowReviewForm(true);
+  };
+
+  const closeReviewForm = () => {
+    setShowReviewForm(false);
+    setEditingReviewId(null);
+    setReviewError(null);
+    setReviewMedia([]);
+  };
+
+  // Review flash messages dismiss themselves after a few seconds
+  useEffect(() => {
+    if (!reviewError && !reviewSuccess) return;
+    const timer = window.setTimeout(() => {
+      setReviewError(null);
+      setReviewSuccess(null);
+    }, 4000);
+    return () => window.clearTimeout(timer);
+  }, [reviewError, reviewSuccess]);
+
+  useEffect(() => {
+    if (!homestay) return;
+    api
+      .getReviews(homestay.id, 3, 0)
+      .then((res) => {
+        setReviews(res.reviews);
+        setReviewTotal(res.total);
+        setReviewSummary(res.summary);
+      })
+      .catch((err) => console.error('Failed to load reviews:', err));
+  }, [homestay]);
+
+  const handleHelpful = async (id: number) => {
+    if (helpfulReviewIds.includes(id)) return;
+    try {
+      const updated = await api.markReviewHelpful(id);
+      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, helpful_count: updated.helpful_count } : r)));
+      setHelpfulReviewIds((prev) => [...prev, id]);
+    } catch (err) {
+      console.error('Failed to mark review helpful:', err);
+    }
+  };
+
+  const handleMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+
+    const remaining = 3 - reviewMedia.length;
+    if (remaining <= 0) {
+      setReviewError('You can attach up to 3 photos.');
+      return;
+    }
+
+    const accepted: { dataUrl: string; type: 'image' }[] = [];
+    for (const file of files.slice(0, remaining)) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        setReviewError('Only photos are supported (JPG, PNG, WEBP, GIF, BMP, AVIF or TIFF).');
+        continue;
+      }
+      if (file.size > MAX_REVIEW_PHOTO_BYTES) {
+        setReviewError(`"${file.name}" is over 5 MB — please choose a smaller photo (max 5 MB).`);
+        continue;
+      }
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error('read failed'));
+          reader.readAsDataURL(file);
+        });
+        accepted.push({ dataUrl, type: 'image' });
+      } catch {
+        setReviewError(`"${file.name}" could not be read. Please try another photo.`);
+      }
+    }
+    if (accepted.length) {
+      setReviewSuccess(null);
+      setReviewMedia((prev) => [...prev, ...accepted].slice(0, 3));
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!homestay) return;
+    setReviewError(null);
+    setReviewSuccess(null);
+
+    if (!currentUser) {
+      setReviewError('Please sign in to write a review.');
+      return;
+    }
+    if (reviewForm.title.trim().length < 3) {
+      setReviewError('Please add a short title for your review.');
+      return;
+    }
+    if (reviewForm.body.trim().length < 10) {
+      setReviewError('Please write at least 10 characters in your review.');
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      if (editingReviewId) {
+        await api.updateReview(editingReviewId, {
+          rating: reviewForm.rating,
+          title: reviewForm.title.trim(),
+          body: reviewForm.body.trim(),
+        });
+      } else {
+        await api.addReview({
+          homestay_id: homestay.id,
+          rating: reviewForm.rating,
+          title: reviewForm.title.trim(),
+          body: reviewForm.body.trim(),
+          media: reviewMedia,
+        });
+      }
+
+      const fresh = await api.getReviews(homestay.id, 3, 0);
+      setReviews(fresh.reviews);
+      setReviewTotal(fresh.total);
+      setReviewSummary(fresh.summary);
+      setShowReviewForm(false);
+      setEditingReviewId(null);
+      setReviewForm((f) => ({ ...f, rating: 5, title: '', body: '' }));
+      setReviewMedia([]);
+      setReviewSuccess(editingReviewId ? 'Your review was updated.' : 'Thank you! Your review is now live.');
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : 'Could not save your review. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleDeleteReview = async (review: Review) => {
+    if (!homestay) return;
+    if (!window.confirm('Delete your review? This cannot be undone.')) return;
+    setReviewError(null);
+    setReviewSuccess(null);
+    try {
+      await api.deleteReview(review.id);
+      const fresh = await api.getReviews(homestay.id, 3, 0);
+      setReviews(fresh.reviews);
+      setReviewTotal(fresh.total);
+      setReviewSummary(fresh.summary);
+      if (editingReviewId === review.id) closeReviewForm();
+      setReviewSuccess('Your review was deleted.');
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : 'Could not delete your review. Please try again.');
+    }
+  };
 
   useEffect(() => {
     if (!homestay) return;
@@ -128,7 +352,11 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
     toD.setDate(toD.getDate() + 120);
     api
       .getHomestayAvailability(homestay.id, from, toD.toISOString().split('T')[0])
-      .then(setStayAvailability)
+      .then((res) => {
+        setStayAvailability(res.dates);
+        setStayBlockedDates(res.blocked);
+        setAvailabilityListed(res.listed);
+      })
       .catch((err) => console.error('Failed to load stay availability:', err));
   }, [homestay]);
 
@@ -143,7 +371,7 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
   };
 
   const handleBook = () => {
-    if (!homestay) return;
+    if (!homestay || !availabilityListed) return;
     try {
       localStorage.setItem(
         'gokarna_booking_draft',
@@ -247,7 +475,7 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
           <div className="absolute right-4 top-4 flex items-center gap-2">
             <div className="glass flex items-center gap-1 rounded-full px-3 py-2 text-xs font-semibold text-ink">
               <Star className="h-3.5 w-3.5 fill-gold text-gold" />
-              <span>{homestay.rating}</span>
+              <span>{homestay.reviews_count > 0 ? homestay.rating : 'New'}</span>
             </div>
             <button
               onClick={shareStay}
@@ -313,7 +541,11 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile icon={<Footprints className="h-4 w-4" />} label="Beach walk" value={`${homestay.walking_minutes_to_beach} min`} />
         <StatTile icon={<BedDouble className="h-4 w-4" />} label="Rooms" value={`${homestay.total_rooms || '—'}`} />
-        <StatTile icon={<Star className="h-4 w-4" />} label="Rating" value={`${homestay.rating}★`} />
+        <StatTile
+          icon={<Star className="h-4 w-4" />}
+          label="Rating"
+          value={homestay.reviews_count > 0 ? `${homestay.rating}★` : 'New'}
+        />
         <StatTile icon={<ShieldCheck className="h-4 w-4" />} label="Reserve hold" value="20%" />
       </div>
 
@@ -353,36 +585,346 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
             <section>
               <SectionTitle index="03 · Rating" title="Travelers love this stay" />
               <div className="rounded-3xl border border-line bg-elevated p-6 sm:p-8">
-                <div className="flex flex-col gap-8 sm:flex-row sm:items-center">
-                  <div className="text-center sm:text-left">
-                    <div className="font-display text-6xl font-semibold text-ember">{homestay.rating}</div>
-                    <div className="mt-2 flex justify-center gap-0.5 text-gold sm:justify-start" aria-hidden="true">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <Star key={i} className={cn('h-3.5 w-3.5', i < Math.round(homestay.rating) ? 'fill-current' : 'fill-none opacity-40')} />
+                {homestay.reviews_count > 0 ? (
+                  <div className="flex flex-col gap-8 sm:flex-row sm:items-center">
+                    <div className="text-center sm:text-left">
+                      <div className="font-display text-6xl font-semibold text-ember">{homestay.rating}</div>
+                      <div className="mt-2 flex justify-center gap-0.5 text-gold sm:justify-start" aria-hidden="true">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <Star key={i} className={cn('h-3.5 w-3.5', i < Math.round(homestay.rating) ? 'fill-current' : 'fill-none opacity-40')} />
+                        ))}
+                      </div>
+                      <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-ink-3">
+                        {homestay.reviews_count} {homestay.reviews_count === 1 ? 'guest review' : 'guest reviews'}
+                      </p>
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      {ratingRows.map((row) => (
+                        <div key={row.label} className="flex items-center gap-3">
+                          <span className="w-36 shrink-0 font-mono text-[10px] uppercase tracking-wider text-ink-3">
+                            {row.label}
+                          </span>
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-paper-2">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-tide to-tide-glow"
+                              style={{ width: `${(row.value / 5) * 100}%` }}
+                            />
+                          </div>
+                          <span className="w-8 text-right font-mono text-xs text-ink">{row.value.toFixed(1)}</span>
+                        </div>
                       ))}
                     </div>
-                    <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-ink-3">
-                      {homestay.reviews_count} verified reviews
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 py-4 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-tide/10 text-tide">
+                      <Star className="h-5 w-5" />
+                    </span>
+                    <p className="font-display text-xl font-semibold text-ink">No reviews yet</p>
+                    <p className="max-w-sm text-xs text-ink-2">
+                      This stay is new on Coastal Trails — be the first guest to review it.
                     </p>
                   </div>
-                  <div className="flex-1 space-y-3">
-                    {ratingRows.map((row) => (
-                      <div key={row.label} className="flex items-center gap-3">
-                        <span className="w-36 shrink-0 font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                          {row.label}
+                )}
+              </div>
+
+              <div className="mt-6 space-y-4">
+                  <div className="rounded-3xl border border-line bg-paper-2 p-5 sm:p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="overline">{reviewSummary ? 'Travelers say' : 'Reviews'}</p>
+                        <span className="mt-1 block font-mono text-[9px] uppercase tracking-wider text-ink-3">
+                          {reviewSummary ? 'Generated from guest reviews' : 'Be the first to share your experience'}
                         </span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-paper-2">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-tide to-tide-glow"
-                            style={{ width: `${(row.value / 5) * 100}%` }}
-                          />
-                        </div>
-                        <span className="w-8 text-right font-mono text-xs text-ink">{row.value.toFixed(1)}</span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (showReviewForm) {
+                            closeReviewForm();
+                          } else if (!currentUser) {
+                            if (onRequireAuth) onRequireAuth();
+                            else setReviewError('Please sign in to write a review.');
+                          } else {
+                            openReviewForm(myReview || undefined);
+                          }
+                        }}
+                        className={cn(
+                          'inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95',
+                          showReviewForm
+                            ? 'border border-line-2 bg-elevated text-ink-2 hover:text-ink'
+                            : 'bg-tide text-white shadow-md shadow-tide/30 hover:bg-tide-2',
+                        )}
+                      >
+                        <PenLine className="h-3.5 w-3.5" />
+                        {showReviewForm ? 'Cancel' : !currentUser ? 'Sign in to review' : myReview ? 'Edit your review' : 'Write a review'}
+                      </button>
+                    </div>
+                    {reviewSummary ? (
+                      <>
+                        <p className="mt-2 text-sm leading-relaxed text-ink-2">{reviewSummary.text}</p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {reviewSummary.topics.map((t) => (
+                            <span
+                              key={t.label}
+                              className="rounded-full border border-line-2 bg-elevated px-3 py-1 text-[11px] font-semibold text-ink-2"
+                            >
+                              {t.label} <span className="font-mono text-ink-3">({t.count})</span>
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+
+                  {reviewSuccess ? (
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-ok/30 bg-ok/10 p-3 text-xs font-semibold text-ok">
+                      <span className="flex items-center gap-2">
+                        <Check className="h-4 w-4 shrink-0" />
+                        {reviewSuccess}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReviewSuccess(null)}
+                        aria-label="Dismiss message"
+                        className="shrink-0 rounded-full p-0.5 text-ok/70 transition-colors hover:bg-ok/10 hover:text-ok"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {reviewError ? (
+                    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-err/30 bg-err/10 p-3 text-xs font-semibold text-err">
+                      <span className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        {reviewError}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReviewError(null)}
+                        aria-label="Dismiss message"
+                        className="shrink-0 rounded-full p-0.5 text-err/70 transition-colors hover:bg-err/10 hover:text-err"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {showReviewForm ? (
+                    <form onSubmit={handleReviewSubmit} className="space-y-4 rounded-3xl border border-tide/40 bg-elevated p-5 sm:p-6">
+                      <p className="overline">{editingReviewId ? 'Edit your review' : 'Your review'}</p>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setReviewForm((f) => ({ ...f, rating: n }))}
+                            aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                            className="transition-transform active:scale-90"
+                          >
+                            <Star
+                              className={cn('h-5 w-5', n <= reviewForm.rating ? 'fill-gold text-gold' : 'fill-none text-ink-3')}
+                            />
+                          </button>
+                        ))}
+                        <span className="ml-2 font-mono text-xs font-semibold text-ink-2">{reviewForm.rating} / 5</span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-ink-2">
+                          Reviewing as <span className="font-semibold text-ink">{currentUser?.name}</span>
+                        </p>
+                        <input
+                          type="text"
+                          value={reviewForm.title}
+                          onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))}
+                          placeholder="Review title (e.g. Beautiful sunset stay)"
+                          className="h-10 w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                          required
+                        />
+                      </div>
+
+                      <textarea
+                        value={reviewForm.body}
+                        onChange={(e) => setReviewForm((f) => ({ ...f, body: e.target.value }))}
+                        placeholder="Share what you loved — cleanliness, host hospitality, food, the view…"
+                        rows={4}
+                        className="w-full rounded-xl border border-line-2 bg-paper-2 p-3.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                        required
+                      />
+
+                      {!editingReviewId ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2 text-xs font-semibold text-ink-2 transition-colors hover:border-tide hover:text-tide">
+                            <ImagePlus className="h-3.5 w-3.5" />
+                            Add photos
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={handleMediaSelect}
+                            />
+                          </label>
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">
+                            {reviewMedia.length}/3 attached · each photo ≤ 5 MB
+                          </span>
+                        </div>
+
+                        {reviewMedia.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {reviewMedia.map((m, i) => (
+                              <div key={i} className="relative h-20 w-24 overflow-hidden rounded-xl border border-line-2">
+                                <img src={m.dataUrl} alt="" className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setReviewMedia((prev) => prev.filter((_, idx) => idx !== i))}
+                                  aria-label="Remove attachment"
+                                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-white transition-colors hover:bg-ink"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                      ) : null}
+
+                      <div className="flex items-center justify-end gap-2.5">
+                        <button
+                          type="button"
+                          onClick={closeReviewForm}
+                          className="rounded-xl border border-line-2 px-4 py-2 text-xs font-semibold text-ink-2 transition-colors hover:bg-paper-2"
+                        >
+                          Cancel
+                        </button>
+                        <Button type="submit" disabled={reviewSubmitting} size="sm">
+                          {reviewSubmitting ? 'Saving…' : editingReviewId ? 'Save changes' : 'Post review'}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : null}
+
+                  <div className="space-y-3">
+                    {reviews.map((r) => (
+                      <article key={r.id} className="rounded-2xl border border-line bg-elevated p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tide/15 font-display text-sm font-semibold text-tide">
+                              {r.guest_name.charAt(0)}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-ink">{r.guest_name}</p>
+                              {r.stay_details ? <p className="truncate text-[11px] text-ink-3">{r.stay_details}</p> : null}
+                            </div>
+                          </div>
+                          {r.verified ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-ok">
+                              <ShieldCheck className="h-3 w-3" />
+                              Verified stay
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                          <span className="flex gap-0.5 text-gold" aria-label={`${r.rating} out of 5 stars`}>
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <Star
+                                key={i}
+                                className={cn('h-3.5 w-3.5', i < r.rating ? 'fill-current' : 'fill-none opacity-40')}
+                              />
+                            ))}
+                          </span>
+                          <span className="text-sm font-semibold text-ink">{r.title}</span>
+                        </div>
+
+                        <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wider text-ink-3">
+                          {timeAgo(r.created_at)}
+                          {r.updated_at && String(r.updated_at) !== String(r.created_at) ? ' · edited' : ''}
+                          {' · '}
+                          {new Date(String(r.created_at).replace(' ', 'T')).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </p>
+
+                        <p className="mt-2.5 text-sm leading-relaxed text-ink-2">{r.body}</p>
+
+                        {r.media && r.media.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {r.media.map((m, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => setLightbox(m.url)}
+                                aria-label="Open guest photo"
+                                className="h-24 w-32 overflow-hidden rounded-xl border border-line transition-transform hover:scale-[1.02]"
+                              >
+                                <img src={m.url} alt="Guest photo" loading="lazy" className="h-full w-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-[11px]">
+                          <button
+                            type="button"
+                            onClick={() => handleHelpful(r.id)}
+                            disabled={helpfulReviewIds.includes(r.id)}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-semibold transition-colors',
+                              helpfulReviewIds.includes(r.id)
+                                ? 'cursor-default border-ok/40 bg-ok/10 text-ok'
+                                : 'border-line-2 text-ink-2 hover:border-tide hover:text-tide',
+                            )}
+                          >
+                            <ThumbsUp className="h-3 w-3" />
+                            {helpfulReviewIds.includes(r.id) ? 'Marked helpful' : 'Helpful'}
+                          </button>
+                          <span className="text-ink-3">
+                            {r.helpful_count} {r.helpful_count === 1 ? 'person' : 'people'} found this helpful
+                          </span>
+
+                          {currentUser && r.user_id && String(r.user_id) === currentUser.id ? (
+                            <span className="ml-auto flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => openReviewForm(r)}
+                                className="inline-flex items-center gap-1 font-semibold text-tide transition-colors hover:text-tide-2"
+                              >
+                                <PenLine className="h-3 w-3" />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteReview(r)}
+                                className="inline-flex items-center gap-1 font-semibold text-err transition-opacity hover:opacity-80"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </button>
+                            </span>
+                          ) : null}
+                        </div>
+                      </article>
                     ))}
                   </div>
+
+                  {reviewTotal > 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/stay/${homestay.id}/reviews`)}
+                      className="w-full rounded-xl border border-line-2 bg-elevated py-2.5 text-xs font-semibold text-ink-2 transition-colors hover:border-tide hover:text-tide"
+                    >
+                      See all {reviewTotal} reviews
+                    </button>
+                  ) : null}
                 </div>
-              </div>
             </section>
           </Reveal>
 
@@ -438,16 +980,29 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
               <Rating value={homestay.rating} />
             </div>
 
-            <DateRangePicker
-              checkIn={checkIn}
-              checkOut={checkOut}
-              availability={stayAvailability}
-              fewLeftThreshold={0}
-              onChange={(ci, co) => {
-                setCheckIn(ci);
-                setCheckOut(co);
-              }}
-            />
+            {availabilityListed ? (
+              <DateRangePicker
+                checkIn={checkIn}
+                checkOut={checkOut}
+                availability={stayAvailability}
+                blockedDates={stayBlockedDates}
+                fewLeftThreshold={3}
+                onChange={(ci, co) => {
+                  setCheckIn(ci);
+                  setCheckOut(co);
+                }}
+              />
+            ) : (
+              <div className="flex items-start gap-2.5 rounded-2xl border border-warn/30 bg-warn/5 p-4">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
+                <div className="space-y-1 text-xs">
+                  <p className="font-semibold text-ink">Availability not published</p>
+                  <p className="text-ink-2">
+                    The host hasn't listed room availability for this stay yet. Please check back soon or explore other stays.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between rounded-xl border border-line-2 bg-elevated px-3.5 py-2.5">
               <span className="text-sm font-semibold text-ink">Guests</span>
@@ -514,9 +1069,9 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
             </div>
 
             <MagneticButton className="w-full">
-              <Button onClick={handleBook} className="w-full py-4 text-sm font-semibold">
+              <Button onClick={handleBook} disabled={!availabilityListed} className="w-full py-4 text-sm font-semibold">
                 <Calendar className="h-4 w-4" />
-                <span>Initiate 20% Reservation</span>
+                <span>{availabilityListed ? 'Initiate 20% Reservation' : 'Availability not published'}</span>
               </Button>
             </MagneticButton>
 
@@ -537,11 +1092,34 @@ export function StayDetailPage({ homestay: propHomestay, onBack, onBook, onNavig
               : `20% hold: ₹${advance}`}
           </span>
         </div>
-        <Button onClick={handleBook} size="sm" className="shrink-0 gap-1.5">
+        <Button onClick={handleBook} disabled={!availabilityListed} size="sm" className="shrink-0 gap-1.5">
           <Calendar className="h-3.5 w-3.5" />
-          <span>Reserve</span>
+          <span>{availabilityListed ? 'Reserve' : 'Unavailable'}</span>
         </Button>
       </div>
+
+      {lightbox ? (
+        <div
+          className="fixed inset-0 z-palette flex items-center justify-center bg-ink/85 p-6 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-label="Guest photo"
+        >
+          <img
+            src={lightbox}
+            alt="Guest photo enlarged"
+            className="max-h-[85vh] max-w-full rounded-2xl border border-white/20 object-contain"
+          />
+          <button
+            type="button"
+            aria-label="Close photo"
+            onClick={() => setLightbox(null)}
+            className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,16 +1,18 @@
 import express from 'express';
 import { all, get, run } from '../db/index.js';
+import { expireStaleHolds, getRoomsLeftMap, getAggregateRoomsLeft, isoDate } from '../db/availability.js';
 
 const router = express.Router();
 
 // Helper to attach child collections (images, amenities, badges, blocked_dates)
 async function attachDetails(stay, checkIn, checkOut) {
-  const images = await all('SELECT image_url FROM homestay_images WHERE homestay_id = ? ORDER BY sort_order ASC', [stay.id]);
+  const images = await all('SELECT image_url, category FROM homestay_images WHERE homestay_id = ? ORDER BY sort_order ASC', [stay.id]);
   const amenities = await all('SELECT amenity FROM homestay_amenities WHERE homestay_id = ?', [stay.id]);
   const badges = await all('SELECT badge FROM homestay_badges WHERE homestay_id = ?', [stay.id]);
   const blockedDates = await all('SELECT blocked_date, reason FROM room_unavailability WHERE homestay_id = ?', [stay.id]);
 
   stay.imageUrls = images.map(r => r.image_url);
+  stay.imageCategories = images.map(r => r.category);
   stay.amenities = amenities.map(r => r.amenity);
   stay.verifiedBadges = badges.map(r => r.badge);
   stay.blockedDates = blockedDates.map(r => r.blocked_date);
@@ -64,47 +66,32 @@ router.get('/', async (req, res) => {
 router.get('/availability', async (req, res) => {
   try {
     const { from, to } = req.query;
-    const totalRow = await get('SELECT COUNT(*) AS c FROM homestays');
-    const total = totalRow?.c || 0;
-    const rows = await all(
-      `SELECT blocked_date, COUNT(*) AS reserved
-       FROM room_unavailability
-       WHERE blocked_date >= ? AND blocked_date <= ?
-       GROUP BY blocked_date`,
-      [from, to]
-    );
-    const dates = {};
-    for (const r of rows) {
-      dates[r.blocked_date] = Math.max(0, total - r.reserved);
-    }
+    if (!from || !to) return res.status(400).json({ error: 'from and to dates are required' });
+    await expireStaleHolds();
+    const { total, dates } = await getAggregateRoomsLeft(from, to);
     res.json({ from, to, total, dates });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/homestays/:id/availability - per-stay reserved status from the database
+// GET /api/homestays/:id/availability - rooms left per night for one stay
 router.get('/:id/availability', async (req, res) => {
   try {
     const { from, to } = req.query;
-    const stay = await get('SELECT id FROM homestays WHERE id = ?', [req.params.id]);
-    if (!stay) return res.status(404).json({ error: 'Homestay not found' });
-    const rows = await all(
-      `SELECT blocked_date FROM room_unavailability
-       WHERE homestay_id = ? AND blocked_date >= ? AND blocked_date <= ?`,
-      [req.params.id, from, to]
-    );
-    const reserved = new Set(rows.map((r) => r.blocked_date));
-    const dates = {};
-    if (from && to) {
-      const start = new Date(from);
-      const end = new Date(to);
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const iso = d.toISOString().split('T')[0];
-        dates[iso] = reserved.has(iso) ? 0 : 1;
-      }
-    }
-    res.json({ homestay_id: req.params.id, from, to, dates });
+    if (!from || !to) return res.status(400).json({ error: 'from and to dates are required' });
+    await expireStaleHolds();
+    const map = await getRoomsLeftMap(req.params.id, from, to);
+    if (!map) return res.status(404).json({ error: 'Homestay not found' });
+    res.json({
+      homestay_id: req.params.id,
+      from: isoDate(from),
+      to: isoDate(to),
+      listed: map.listed,
+      total_rooms: map.total_rooms,
+      dates: map.dates,
+      blocked: map.blockedByHost,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -143,6 +130,7 @@ router.post('/', async (req, res) => {
       walking_minutes_to_beach = 3,
       total_rooms = 3,
       description = '',
+      availability_listed = 0,
       images = [],
       amenities = [],
       badges = []
@@ -152,15 +140,23 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required homestay fields' });
     }
 
+    const roomCount = Number(total_rooms);
+    if (!Number.isInteger(roomCount) || roomCount < 1 || roomCount > 100) {
+      return res.status(400).json({ error: 'Rooms available must be a whole number between 1 and 100.' });
+    }
+
     await run(
-      `INSERT INTO homestays (id, title, subtitle, location, location_display, price_per_night, rating, reviews_count, host_name, host_whatsapp, is_host_verified, walking_minutes_to_beach, total_rooms, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, subtitle, location, location_display || location, price_per_night, rating, reviews_count, host_name, host_whatsapp, is_host_verified ? 1 : 0, walking_minutes_to_beach, total_rooms, description]
+      `INSERT INTO homestays (id, title, subtitle, location, location_display, price_per_night, rating, reviews_count, host_name, host_whatsapp, is_host_verified, walking_minutes_to_beach, total_rooms, availability_listed, description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, title, subtitle, location, location_display || location, price_per_night, rating, reviews_count, host_name, host_whatsapp, is_host_verified ? 1 : 0, walking_minutes_to_beach, roomCount, availability_listed ? 1 : 0, description]
     );
 
     // Images
     for (let i = 0; i < images.length; i++) {
-      await run('INSERT INTO homestay_images (homestay_id, image_url, sort_order) VALUES (?, ?, ?)', [id, images[i], i]);
+      const img = images[i];
+      const url = typeof img === 'string' ? img : img.url;
+      const category = typeof img === 'string' ? 'general' : img.category || 'general';
+      await run('INSERT INTO homestay_images (homestay_id, image_url, sort_order, category) VALUES (?, ?, ?, ?)', [id, url, i, category]);
     }
     // Amenities
     for (const a of amenities) {
@@ -192,8 +188,20 @@ router.put('/:id', async (req, res) => {
       host_whatsapp,
       walking_minutes_to_beach,
       total_rooms,
-      description
+      availability_listed,
+      description,
+      status,
+      instant_booking
     } = req.body;
+
+    let roomCountUpdate = total_rooms;
+    if (total_rooms !== undefined && total_rooms !== null) {
+      const parsed = Number(total_rooms);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+        return res.status(400).json({ error: 'Rooms available must be a whole number between 1 and 100.' });
+      }
+      roomCountUpdate = parsed;
+    }
 
     await run(
       `UPDATE homestays SET 
@@ -206,10 +214,20 @@ router.put('/:id', async (req, res) => {
         host_whatsapp = COALESCE(?, host_whatsapp),
         walking_minutes_to_beach = COALESCE(?, walking_minutes_to_beach),
         total_rooms = COALESCE(?, total_rooms),
-        description = COALESCE(?, description)
+        availability_listed = COALESCE(?, availability_listed),
+        description = COALESCE(?, description),
+        status = COALESCE(?, status),
+        instant_booking = COALESCE(?, instant_booking)
        WHERE id = ?`,
-      [title, subtitle, location, location_display, price_per_night, host_name, host_whatsapp, walking_minutes_to_beach, total_rooms, description, id]
+      [title, subtitle, location, location_display, price_per_night, host_name, host_whatsapp, walking_minutes_to_beach, roomCountUpdate, availability_listed, description, status ?? null, instant_booking ?? null, id]
     );
+
+    if (Array.isArray(req.body.amenities)) {
+      await run('DELETE FROM homestay_amenities WHERE homestay_id = ?', [id]);
+      for (const a of req.body.amenities) {
+        await run('INSERT INTO homestay_amenities (homestay_id, amenity) VALUES (?, ?)', [id, a]);
+      }
+    }
 
     const updated = await get('SELECT * FROM homestays WHERE id = ?', [id]);
     res.json(await attachDetails(updated));
@@ -233,7 +251,21 @@ router.post('/:id/block-date', async (req, res) => {
   try {
     const { date, reason = 'host_hold' } = req.body;
     if (!date) return res.status(400).json({ error: 'Date is required (YYYY-MM-DD)' });
-    await run('INSERT OR IGNORE INTO room_unavailability (homestay_id, blocked_date, reason) VALUES (?, ?, ?)', [req.params.id, date, reason]);
+    await run('INSERT IGNORE INTO room_unavailability (homestay_id, blocked_date, reason) VALUES (?, ?, ?)', [req.params.id, date, reason]);
+    // Managing dates means the admin has published availability for this stay
+    await run('UPDATE homestays SET availability_listed = 1 WHERE id = ?', [req.params.id]);
+    res.json({ success: true, homestay_id: req.params.id, blocked_date: date });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/homestays/:id/block-date
+router.delete('/:id/block-date', async (req, res) => {
+  try {
+    const { date } = req.body;
+    if (!date) return res.status(400).json({ error: 'Date is required (YYYY-MM-DD)' });
+    await run('DELETE FROM room_unavailability WHERE homestay_id = ? AND blocked_date = ?', [req.params.id, date]);
     res.json({ success: true, homestay_id: req.params.id, blocked_date: date });
   } catch (err) {
     res.status(500).json({ error: err.message });

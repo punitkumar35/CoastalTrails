@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   Search,
   Clock,
@@ -14,10 +16,13 @@ import {
   XCircle,
   CalendarDays,
   LogOut,
+  MessageCircle,
   Moon,
+  Wallet,
+  X,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Booking } from '../types';
+import type { Booking, User } from '../types';
 import { api } from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -25,14 +30,17 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Reveal } from '../components/ui/Reveal';
 import { Tabs } from '../components/ui/Tabs';
+import { Dialog } from '../components/ui/Dialog';
 import { cn } from '../lib/cn';
+import { useLiveRefresh } from '../lib/live';
+import QRCode from 'qrcode';
+import { openRazorpayCheckout } from '../lib/razorpay';
 
 interface ReservationStatusPageProps {
+  currentUser: User | null;
   initialRefCode?: string;
   onExploreStays?: () => void;
 }
-
-const DEMO_REFS = ['GK-782941', 'GK-913482', 'GK-654127'];
 
 function useCountdown(target?: string) {
   const [left, setLeft] = useState('');
@@ -58,9 +66,13 @@ function useCountdown(target?: string) {
 
 function StatusPill({ status }: { status: Booking['status'] }) {
   const map = {
+    pending_payment: { label: 'Payment pending', icon: Clock, cls: 'border-warn/40 bg-warn/10 text-warn' },
     confirmed: { label: 'Confirmed', icon: CheckCircle2, cls: 'border-ok/30 bg-ok/10 text-ok' },
+    checked_in: { label: 'Checked in', icon: CheckCircle2, cls: 'border-tide/30 bg-tide/10 text-tide' },
+    completed: { label: 'Completed', icon: CheckCircle2, cls: 'border-ok/30 bg-ok/10 text-ok' },
     declined: { label: 'Declined', icon: XCircle, cls: 'border-err/30 bg-err/10 text-err' },
     cancelled: { label: 'Cancelled', icon: XCircle, cls: 'border-ink-3/30 bg-paper-2 text-ink-3' },
+    expired: { label: 'Expired', icon: XCircle, cls: 'border-ink-3/30 bg-paper-2 text-ink-3' },
     awaiting_host: { label: 'Awaiting host', icon: Clock, cls: 'border-warn/30 bg-warn/10 text-warn' },
   } as const;
   const m = map[status] ?? map.awaiting_host;
@@ -73,7 +85,24 @@ function StatusPill({ status }: { status: Booking['status'] }) {
   );
 }
 
-export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExploreStays }: ReservationStatusPageProps) {
+function PaymentBadge({ booking }: { booking: Booking }) {
+  const status = booking.payment_status ?? (booking.advance_paid > 0 ? 'paid' : 'pending');
+  const map: Record<string, string> = {
+    paid: 'border-ok/30 bg-ok/10 text-ok',
+    refunded: 'border-tide/30 bg-tide/10 text-tide',
+    failed: 'border-err/30 bg-err/10 text-err',
+    partially_paid: 'border-warn/30 bg-warn/10 text-warn',
+    pending: 'border-warn/30 bg-warn/10 text-warn',
+  };
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider', map[status] || map.pending)}>
+      <Wallet className="h-3 w-3" />
+      {status === 'partially_paid' ? 'Part paid' : status}
+    </span>
+  );
+}
+
+export function ReservationStatusPage({ currentUser, initialRefCode: propRefCode = '', onExploreStays }: ReservationStatusPageProps) {
   const { refCode: urlRefCode } = useParams<{ refCode?: string }>();
   const navigate = useNavigate();
   const activeInitialCode = urlRefCode || propRefCode;
@@ -85,10 +114,23 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'awaiting_host'>('all');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [payMethod, setPayMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
+  const [payingHold, setPayingHold] = useState(false);
+  const syncingRef = useRef(false);
+  const [payResult, setPayResult] = useState<{ kind: 'success' | 'failed'; message?: string } | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (silent = false) => {
+    if (!currentUser) {
+      setAllBookings([]);
+      setMatchingBookings([]);
+      return;
+    }
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await api.getBookings();
       setAllBookings(data);
       if (searchQuery.trim()) {
@@ -100,17 +142,152 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
           if (match) setSelectedBooking(match);
         }
       }
+      setSelectedBooking((prev) => {
+        if (!prev) return prev;
+        const fresh = data.find((b) => b.id === prev.id);
+        return fresh ?? prev;
+      });
+
+      // Auto-reconcile bookings whose payment may have completed while the
+      // checkout handler was interrupted (network drop, closed tab, etc.)
+      if (silent && !syncingRef.current) {
+        const stuck = data.filter(
+          (b) => b.payment_status === 'pending' && (b.status === 'pending_payment' || b.status === 'awaiting_host'),
+        );
+        if (stuck.length > 0) {
+          syncingRef.current = true;
+          Promise.all(stuck.slice(0, 3).map((b) => api.syncPayment(b.id).catch(() => null)))
+            .then((results) => {
+              if (results.some((r) => r && r.synced !== 'pending')) {
+                return fetchBookings(true);
+              }
+              return undefined;
+            })
+            .finally(() => {
+              syncingRef.current = false;
+            });
+        }
+      }
     } catch (err) {
       console.error('Failed to load bookings', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchBookings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlRefCode]);
+  }, [urlRefCode, currentUser?.phone]);
+
+  useEffect(() => {
+    if (!selectedBooking) {
+      setQrDataUrl('');
+      return;
+    }
+    let alive = true;
+    QRCode.toDataURL(
+      `${window.location.origin}/reservation/${selectedBooking.reference_code}`,
+      { width: 236, margin: 1, color: { dark: '#16222E', light: '#FFFFFF' } },
+    )
+      .then((url) => {
+        if (alive) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (alive) setQrDataUrl('');
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selectedBooking]);
+
+  useLiveRefresh(() => fetchBookings(true), 15000);
+
+  // Status notices dismiss themselves after a few seconds
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const refreshBooking = async (id: string) => {
+    const fresh = await api.getBookings();
+    setAllBookings(fresh);
+    setMatchingBookings(fresh);
+    const updated = fresh.find((b) => b.id === id);
+    if (updated) setSelectedBooking(updated);
+    return updated;
+  };
+
+  const handleCancelBooking = async () => {
+    if (!selectedBooking) return;
+    setConfirmCancel(true);
+  };
+
+  const doCancelBooking = async () => {
+    if (!selectedBooking) return;
+    setCancelling(true);
+    try {
+      await api.cancelBooking(selectedBooking.id);
+      await refreshBooking(selectedBooking.id);
+      setNotice('Booking cancelled — any paid hold will be refunded.');
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Could not cancel the booking.');
+    } finally {
+      setCancelling(false);
+      setConfirmCancel(false);
+    }
+  };
+
+  const handleCompletePayment = async () => {
+    if (!selectedBooking) return;
+    setPayingHold(true);
+    try {
+      const init = await api.initiatePayment(selectedBooking.id, payMethod);
+      await openRazorpayCheckout({
+        key: init.key_id,
+        orderId: init.order_id,
+        amountPaise: init.amount_paise,
+        method: payMethod as 'upi' | 'card' | 'netbanking',
+        description: `20% hold · ${init.booking_reference}`,
+        prefill: { name: init.customer.name, contact: init.customer.phone },
+        onSuccess: async (r) => {
+          try {
+            await api.confirmPayment(selectedBooking.id, {
+              razorpay_order_id: init.order_id,
+              razorpay_payment_id: r.razorpay_payment_id,
+              razorpay_signature: r.razorpay_signature,
+            });
+          } catch {
+            await api.syncPayment(selectedBooking.id).catch(() => {});
+          }
+          await refreshBooking(selectedBooking.id);
+          setPayResult({ kind: 'success' });
+        },
+        onFail: async (message) => {
+          await api.failPayment(selectedBooking.id).catch(() => {});
+          setPayResult({ kind: 'failed', message });
+        },
+        onCancel: async () => {
+          const synced = await api.syncPayment(selectedBooking.id).catch(() => null);
+          if (synced && synced.booking.payment_status === 'paid') {
+            await refreshBooking(selectedBooking.id);
+            setPayResult({ kind: 'success' });
+          } else {
+            await api.failPayment(selectedBooking.id).catch(() => {});
+            setPayResult({
+              kind: 'failed',
+              message: 'Payment window closed before completing. Nothing was charged — retry when ready.',
+            });
+          }
+        },
+      });
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Could not complete the payment.');
+    } finally {
+      setPayingHold(false);
+    }
+  };
 
   const handleExplore = () => {
     if (onExploreStays) onExploreStays();
@@ -192,9 +369,37 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
 
   const countdown = useCountdown(selectedBooking?.hold_expires_at);
 
+  const cancelDialog = (
+    <Dialog open={confirmCancel} onClose={() => setConfirmCancel(false)} title="Cancel this booking?">
+      <div className="space-y-4">
+        <div className="flex items-start gap-3 rounded-xl border border-warn/40 bg-warn/10 p-3">
+          <XCircle className="h-5 w-5 shrink-0 text-warn" />
+          <p className="text-sm leading-relaxed text-ink-2">
+            {selectedBooking?.payment_status === 'paid' ? (
+              <>
+                Your paid hold of <span className="font-semibold text-ink">₹{selectedBooking.advance_paid}</span> will be
+                refunded to the original payment method. This cannot be undone.
+              </>
+            ) : (
+              <>This booking will be cancelled immediately. This cannot be undone.</>
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2.5">
+          <Button variant="secondary" className="flex-1" onClick={() => setConfirmCancel(false)} disabled={cancelling}>
+            No, keep booking
+          </Button>
+          <Button className="flex-1 gap-1.5 bg-err hover:bg-err/90" onClick={doCancelBooking} disabled={cancelling}>
+            {cancelling ? 'Cancelling…' : 'Yes, cancel it'}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+
   if (selectedBooking) {
-    const isConfirmed = selectedBooking.status === 'confirmed';
-    const isDeclined = selectedBooking.status === 'declined';
+    const isConfirmed = ['confirmed', 'checked_in', 'completed'].includes(selectedBooking.status);
+    const isDeclined = ['declined', 'cancelled', 'expired'].includes(selectedBooking.status);
     const isAwaiting = !isConfirmed && !isDeclined;
     const nights =
       selectedBooking.nights ||
@@ -221,7 +426,29 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
             <span>All bookings</span>
           </button>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {['pending_payment', 'awaiting_host', 'confirmed'].includes(selectedBooking.status) ? (
+              <button
+                type="button"
+                onClick={handleCancelBooking}
+                disabled={cancelling}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-err/30 bg-err/5 px-3.5 py-2 text-xs font-semibold text-err transition-colors hover:bg-err/10 disabled:opacity-60"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                <span>{cancelling ? 'Cancelling…' : 'Cancel booking'}</span>
+              </button>
+            ) : null}
+            {selectedBooking.guest_whatsapp_link ? (
+              <a
+                href={selectedBooking.guest_whatsapp_link}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ok/40 bg-ok/10 px-3.5 py-2 text-xs font-semibold text-ok transition-colors hover:bg-ok/20"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span>WhatsApp details</span>
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={() => window.print()}
@@ -230,9 +457,68 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
               <Printer className="h-3.5 w-3.5" />
               <span>Print voucher</span>
             </button>
+            <PaymentBadge booking={selectedBooking} />
             <StatusPill status={selectedBooking.status} />
           </div>
         </div>
+
+        {notice ? (
+          <div className="flex items-center justify-between gap-2.5 rounded-xl border border-tide/30 bg-tide/5 p-3 text-xs font-semibold text-tide">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {notice}
+            </span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss message"
+              className="shrink-0 rounded-full p-0.5 text-tide/70 transition-colors hover:bg-tide/10 hover:text-tide"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+
+        {selectedBooking.status === 'pending_payment' ? (
+          <div className="rounded-3xl border border-warn/40 bg-warn/5 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-warn" />
+              <div className="min-w-0 flex-1 space-y-3">
+                <div>
+                  <p className="font-display text-lg font-semibold text-ink">Finish your 20% hold</p>
+                  <p className="text-xs text-ink-2">
+                    ₹{Math.round(selectedBooking.total_amount * 0.2)} due now · ₹
+                    {selectedBooking.total_amount - Math.round(selectedBooking.total_amount * 0.2)} payable at the property. Your
+                    rooms stay held for 24 hours.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(['upi', 'card', 'netbanking'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPayMethod(m)}
+                      className={cn(
+                        'rounded-xl border px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors',
+                        payMethod === m
+                          ? 'border-tide bg-tide/10 text-tide'
+                          : 'border-line-2 bg-elevated text-ink-2 hover:border-tide hover:text-tide',
+                      )}
+                    >
+                      {m === 'upi' ? 'UPI' : m === 'card' ? 'Card' : 'Netbanking'}
+                    </button>
+                  ))}
+                  <Button size="sm" onClick={handleCompletePayment} disabled={payingHold}>
+                    {payingHold ? 'Verifying…' : `Pay ₹${Math.round(selectedBooking.total_amount * 0.2)} now`}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-ink-3">
+                  Simulated gateway — the server verifies the payment before the booking moves to the host.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <Reveal>
           <div className="print-voucher relative overflow-hidden rounded-3xl border border-line bg-elevated">
@@ -270,7 +556,15 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
                     isConfirmed ? 'border-ok/60 text-ok' : isDeclined ? 'border-err/60 text-err' : 'border-warn/60 text-warn',
                   )}
                 >
-                  {isConfirmed ? 'Confirmed ✓' : isDeclined ? 'Declined' : 'Awaiting host'}
+                  {selectedBooking.status === 'cancelled'
+                    ? 'Cancelled'
+                    : selectedBooking.status === 'expired'
+                      ? 'Expired'
+                      : isConfirmed
+                        ? 'Confirmed ✓'
+                        : isDeclined
+                          ? 'Declined'
+                          : 'Awaiting host'}
                 </span>
               </div>
             </div>
@@ -397,18 +691,30 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-col items-center gap-2 border-t border-dashed border-line-2 pt-5">
-                  <div className="flex h-12 items-stretch gap-[2px]" aria-hidden="true">
-                    {Array.from({ length: 42 }).map((_, i) => (
-                      <span
-                        key={i}
-                        className="w-[2px] bg-ink"
-                        style={{ height: `${[55, 100, 80, 100, 65, 90, 100][i % 7]}%` }}
+                <div className="mt-6 flex flex-col items-center gap-4 border-t border-dashed border-line-2 pt-5">
+                  {qrDataUrl ? (
+                    <div className="flex flex-col items-center gap-1.5">
+                      <img
+                        src={qrDataUrl}
+                        alt="Booking QR code"
+                        className="h-24 w-24 rounded-lg border border-line bg-white p-1.5"
                       />
-                    ))}
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-ink-3">Scan to verify</span>
+                    </div>
+                  ) : null}
+                  <div className="flex w-full flex-col items-center gap-2">
+                    <div className="flex h-12 items-stretch gap-[2px]" aria-hidden="true">
+                      {Array.from({ length: 42 }).map((_, i) => (
+                        <span
+                          key={i}
+                          className="w-[2px] bg-ink"
+                          style={{ height: `${[55, 100, 80, 100, 65, 90, 100][i % 7]}%` }}
+                        />
+                      ))}
+                    </div>
+                    <span className="font-mono-data text-sm font-semibold tracking-[0.25em] text-ink">{selectedBooking.reference_code}</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-ok">Valid for check-in</span>
                   </div>
-                  <span className="font-mono-data text-sm font-semibold tracking-[0.25em] text-ink">{selectedBooking.reference_code}</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-ok">Valid for check-in</span>
                 </div>
               </div>
             </div>
@@ -425,17 +731,40 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
             Back to all bookings
           </button>
         </div>
+        {cancelDialog}
       </div>
     );
   }
 
   return (
     <div className="w-full space-y-8">
+      {notice ? (
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-2.5 rounded-xl border border-tide/30 bg-tide/5 p-3 text-xs font-semibold text-tide">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            {notice}
+          </span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            aria-label="Dismiss message"
+            className="shrink-0 rounded-full p-0.5 text-tide/70 transition-colors hover:bg-tide/10 hover:text-tide"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
       <div className="mx-auto max-w-xl space-y-3 text-center">
         <p className="overline">Reservation desk</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Your bookings</h1>
         <p className="text-sm text-ink-2">
-          Verify your 20% commitment hold, watch host approval, and open any reservation for the full voucher.
+          {currentUser ? (
+            <>
+              Signed in as <span className="font-semibold text-ink">{currentUser.name}</span> — only your own reservations appear here.
+            </>
+          ) : (
+            'Verify your 20% commitment hold, watch host approval, and open any reservation for the full voucher.'
+          )}
         </p>
       </div>
 
@@ -449,29 +778,13 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
               setSearchQuery(e.target.value);
               filterResults(e.target.value);
             }}
-            placeholder="Booking reference (e.g. GK-782941) or WhatsApp number"
+            placeholder="Search your bookings by reference (e.g. GK-782941)"
             aria-label="Search bookings"
             className="w-full bg-transparent px-3.5 py-2 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
           />
           <Button type="submit" size="sm" className="shrink-0">
             Search
           </Button>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">Try demo refs:</span>
-          {DEMO_REFS.map((ref) => (
-            <button
-              key={ref}
-              type="button"
-              onClick={() => {
-                setSearchQuery(ref);
-                filterResults(ref);
-              }}
-              className="rounded-full border border-line-2 px-2.5 py-1 font-mono text-[10px] font-semibold text-ink-2 transition-colors hover:border-tide hover:text-tide"
-            >
-              {ref}
-            </button>
-          ))}
         </div>
       </form>
 
@@ -517,7 +830,16 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
           icon={<AlertCircle className="h-6 w-6" />}
           overline="No results"
           title="No reservation located"
-          description={`We couldn't find a booking for "${searchQuery}". Check the reference code or registered phone number.`}
+          description={`We couldn't find a booking for "${searchQuery}" in your account. Check the reference code and try again.`}
+          action={{ label: 'Explore sanctuaries', onClick: handleExplore }}
+          className="mx-auto max-w-xl"
+        />
+      ) : !hasSearched && allBookings.length === 0 ? (
+        <EmptyState
+          icon={<Waves className="h-6 w-6" />}
+          overline="No bookings yet"
+          title="Your reservations will appear here"
+          description="You haven't booked a stay yet. Explore our family-stewarded sanctuaries and secure your first 20% hold."
           action={{ label: 'Explore sanctuaries', onClick: handleExplore }}
           className="mx-auto max-w-xl"
         />
@@ -545,6 +867,9 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
                             </span>
                             <span className="font-mono text-[11px] uppercase tracking-wider text-ink-3">{b.reference_code}</span>
                             <StatusPill status={b.status} />
+                            {b.payment_status && b.payment_status !== 'paid' ? (
+                              <span className="font-mono text-[10px] uppercase tracking-wider text-warn">payment {b.payment_status}</span>
+                            ) : null}
                           </div>
                           <h3 className="truncate font-display text-lg font-semibold text-ink">{b.homestay_title || 'Coastal Sanctuary'}</h3>
                           <p className="flex items-center gap-1.5 text-xs text-ink-2">
@@ -570,6 +895,155 @@ export function ReservationStatusPage({ initialRefCode: propRefCode = '', onExpl
           ))}
         </div>
       )}
+
+      {createPortal(
+        <AnimatePresence>
+          {payResult && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                className="w-full max-w-md rounded-3xl border border-line bg-elevated p-8 text-center shadow-2xl"
+              >
+                {payResult.kind === 'success' ? (
+                  <motion.svg viewBox="0 0 52 52" className="mx-auto h-20 w-20">
+                    <motion.circle
+                      cx="26"
+                      cy="26"
+                      r="24"
+                      fill="none"
+                      stroke="var(--c-ok)"
+                      strokeWidth="2"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                    />
+                    <motion.path
+                      d="M14 27 L22 35 L38 17"
+                      fill="none"
+                      stroke="var(--c-ok)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.4, delay: 0.55, ease: 'easeOut' }}
+                    />
+                  </motion.svg>
+                ) : (
+                  <motion.svg viewBox="0 0 52 52" className="mx-auto h-20 w-20">
+                    <motion.circle
+                      cx="26"
+                      cy="26"
+                      r="24"
+                      fill="none"
+                      stroke="var(--c-err)"
+                      strokeWidth="2"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                    />
+                    <motion.path
+                      d="M18 18 L34 34 M34 18 L18 34"
+                      fill="none"
+                      stroke="var(--c-err)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.4, delay: 0.55, ease: 'easeOut' }}
+                    />
+                  </motion.svg>
+                )}
+
+                <p className={cn('overline mt-6', payResult.kind === 'failed' && '!text-err')}>
+                  {payResult.kind === 'success' ? 'Payment successful' : 'Payment failed'}
+                </p>
+                <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink">
+                  {payResult.kind === 'success'
+                    ? 'Your stay is booked'
+                    : "We couldn't complete your payment"}
+                </h2>
+                <p className="mt-2 text-sm text-ink-2">
+                  {payResult.kind === 'success'
+                    ? 'The 20% hold is paid — your booking has been sent to the host for confirmation.'
+                    : payResult.message || 'Your payment was declined. Nothing was charged — your dates are still held.'}
+                </p>
+
+                <div className="mt-4 flex items-end justify-center gap-0.5" aria-hidden="true">
+                  {[8, 14, 20, 26, 20, 14, 8].map((h, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ height: 4, opacity: 0 }}
+                      animate={{ height: h, opacity: 1 }}
+                      transition={{ delay: 0.5 + i * 0.06, type: 'spring', stiffness: 300, damping: 18 }}
+                      className={cn('w-1 rounded-full', payResult.kind === 'success' ? 'bg-tide-glow' : 'bg-err/50')}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-6 flex flex-col justify-center gap-2.5 sm:flex-row">
+                  {payResult.kind === 'success' ? (
+                    <Button className="flex-1" onClick={() => setPayResult(null)}>
+                      View my booking
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        className="flex-1"
+                        disabled={payingHold}
+                        onClick={() => {
+                          setPayResult(null);
+                          void handleCompletePayment();
+                        }}
+                      >
+                        {payingHold ? 'Retrying…' : 'Retry payment'}
+                      </Button>
+                      <Button variant="secondary" className="flex-1" onClick={() => setPayResult(null)}>
+                        Pay later
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+
+      <Dialog open={confirmCancel} onClose={() => setConfirmCancel(false)} title="Cancel this booking?">
+        <div className="space-y-4">          <div className="flex items-start gap-3 rounded-xl border border-warn/40 bg-warn/10 p-3">
+            <XCircle className="h-5 w-5 shrink-0 text-warn" />
+            <p className="text-sm leading-relaxed text-ink-2">
+              {selectedBooking?.payment_status === 'paid' ? (
+                <>
+                  Your paid hold of <span className="font-semibold text-ink">₹{selectedBooking.advance_paid}</span> will be
+                  refunded to the original payment method. This cannot be undone.
+                </>
+              ) : (
+                <>This booking will be cancelled immediately. This cannot be undone.</>
+              )}
+            </p>
+          </div>
+          <div className="flex gap-2.5">
+            <Button variant="secondary" className="flex-1" onClick={() => setConfirmCancel(false)} disabled={cancelling}>
+              No, keep booking
+            </Button>
+            <Button className="flex-1 gap-1.5 bg-err hover:bg-err/90" onClick={doCancelBooking} disabled={cancelling}>
+              {cancelling ? 'Cancelling…' : 'Yes, cancel it'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      {cancelDialog}
     </div>
   );
 }

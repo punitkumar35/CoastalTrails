@@ -13,9 +13,12 @@ import {
   Star,
   Users,
   Waves,
+  X,
 } from 'lucide-react';
-import type { Booking, Homestay } from '../types';
+import type { Booking, Homestay, User } from '../types';
 import { api } from '../services/api';
+import { useLiveRefresh } from '../lib/live';
+import { openRazorpayCheckout } from '../lib/razorpay';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -29,6 +32,53 @@ import { easeOut, springFast } from '../lib/motion';
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80';
 const EXTRA_GUEST_CHARGE = 400;
+
+function formatDateList(dates: string[]): string {
+  return dates
+    .map((d) => {
+      const dt = new Date(`${d}T00:00:00`);
+      return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    })
+    .join(', ');
+}
+
+function nightsBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  if (!from || !to) return out;
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return out;
+  for (const d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  }
+  return out;
+}
+
+function FlashMessage({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.2, ease: easeOut }}
+      role="alert"
+      className="flex items-start justify-between gap-2.5 rounded-xl border border-err/30 bg-err/10 p-3 text-xs font-semibold text-err"
+    >
+      <span className="flex items-start gap-2">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>{message}</span>
+      </span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss message"
+        className="shrink-0 rounded-full p-0.5 text-err/70 transition-colors hover:bg-err/10 hover:text-err"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </motion.div>
+  );
+}
 
 function CountUp({ value }: { value: number }) {
   const [display, setDisplay] = useState(value);
@@ -62,7 +112,7 @@ const stepVariants = {
   exit: (dir: number) => ({ x: dir > 0 ? -48 : 48, opacity: 0 }),
 };
 
-export function BookingPage() {
+export function BookingPage({ currentUser }: { currentUser?: User | null }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [homestay, setHomestay] = useState<Homestay | null>(null);
@@ -72,11 +122,16 @@ export function BookingPage() {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(2);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState(currentUser?.name ?? '');
+  const [phone, setPhone] = useState(currentUser?.phone ?? '');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<Booking | null>(null);
+  const [payResult, setPayResult] = useState<'success' | 'failed' | null>(null);
+  const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -94,6 +149,14 @@ export function BookingPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useLiveRefresh(() => {
+    if (!id) return;
+    api
+      .getHomestay(id)
+      .then((data) => setHomestay(data))
+      .catch((err) => console.error('Failed to refresh stay for booking:', err));
+  }, 20000);
 
   useEffect(() => {
     try {
@@ -115,6 +178,8 @@ export function BookingPage() {
   }, [id]);
 
   const [stayAvailability, setStayAvailability] = useState<Record<string, number>>({});
+  const [stayBlockedDates, setStayBlockedDates] = useState<Record<string, number>>({});
+  const [availabilityListed, setAvailabilityListed] = useState(true);
 
   useEffect(() => {
     if (!homestay) return;
@@ -125,9 +190,20 @@ export function BookingPage() {
     toD.setDate(toD.getDate() + 120);
     api
       .getHomestayAvailability(homestay.id, from, toD.toISOString().split('T')[0])
-      .then(setStayAvailability)
+      .then((res) => {
+        setStayAvailability(res.dates);
+        setStayBlockedDates(res.blocked);
+        setAvailabilityListed(res.listed);
+      })
       .catch((err) => console.error('Failed to load stay availability:', err));
   }, [homestay]);
+
+  // Flash messages dismiss themselves after a few seconds
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(() => setError(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
 
   const nights =
     checkIn && checkOut
@@ -138,15 +214,30 @@ export function BookingPage() {
   const extraTotal = extraGuests * EXTRA_GUEST_CHARGE * nights;
   const totalAmount = roomTotal + extraTotal;
   const advance = Math.round(totalAmount * 0.2);
-  const hasDateConflict = !!homestay?.blockedDates?.some((d) => d >= checkIn && d < checkOut);
+
+  const selectedNights = nightsBetween(checkIn, checkOut);
+  const countedNights = selectedNights
+    .map((d) => stayAvailability[d])
+    .filter((v): v is number => typeof v === 'number');
+  const minRoomsLeft = countedNights.length > 0 ? Math.min(...countedNights) : undefined;
+  const conflictDates = selectedNights.filter(
+    (d) => stayAvailability[d] === 0 || !!homestay?.blockedDates?.includes(d),
+  );
+  const hasDateConflict = conflictDates.length > 0;
 
   function next() {
+    if (step === 0 && !availabilityListed) {
+      setError("This stay isn't accepting bookings yet — the host hasn't published room availability.");
+      return;
+    }
     if (step === 0 && (!checkIn || !checkOut)) {
       setError('Pick your check-in and check-out dates.');
       return;
     }
     if (step === 0 && hasDateConflict) {
-      setError('Those dates are locked for this stay. Choose alternate dates.');
+      setError(
+        `${formatDateList(conflictDates)} ${conflictDates.length === 1 ? 'has' : 'have'} no rooms left. Please select other dates.`,
+      );
       return;
     }
     if (step === 1 && (!name.trim() || phone.trim().length < 7)) {
@@ -171,19 +262,90 @@ export function BookingPage() {
     try {
       const booking = await api.createBooking({
         homestay_id: homestay.id,
-        user_name: name.trim(),
-        user_phone: phone.trim(),
         check_in: checkIn,
         check_out: checkOut,
         guests_count: guests,
       });
-      setConfirmed(booking);
+      // Rooms are now held with payment pending — nothing is marked paid yet
+      setPendingBooking(booking);
     } catch (err: any) {
-      setError(err.message || 'Failed to confirm the hold.');
+      setError(err.message || 'Failed to lock the dates.');
     } finally {
       setSubmitting(false);
     }
   }
+
+  async function payNow() {
+    if (!pendingBooking) return;
+    setPaying(true);
+    setPaymentError(null);
+    try {
+      const init = await api.initiatePayment(pendingBooking.id, paymentMethod);
+      await openRazorpayCheckout({
+        key: init.key_id,
+        orderId: init.order_id,
+        amountPaise: init.amount_paise,
+        method: paymentMethod as 'upi' | 'card' | 'netbanking',
+        description: `20% hold · ${init.booking_reference}`,
+        prefill: { name: init.customer.name, contact: init.customer.phone },
+        onSuccess: async (r) => {
+          try {
+            const { booking } = await api.confirmPayment(pendingBooking.id, {
+              razorpay_order_id: init.order_id,
+              razorpay_payment_id: r.razorpay_payment_id,
+              razorpay_signature: r.razorpay_signature,
+            });
+            setPayResult('success');
+            setPendingBooking(null);
+            setConfirmed(booking);
+          } catch {
+            const synced = await api.syncPayment(pendingBooking.id).catch(() => null);
+            if (synced && synced.booking.payment_status === 'paid') {
+              setPayResult('success');
+              setPendingBooking(null);
+              setConfirmed(synced.booking);
+            } else {
+              setPaymentError('Payment is being verified — refresh in a few seconds.');
+            }
+          }
+        },
+        onFail: async (message) => {
+          await api.failPayment(pendingBooking.id).catch(() => {});
+          setPayResult('failed');
+          setPaymentError(message || 'Your payment was declined.');
+        },
+        onCancel: async () => {
+          const synced = await api.syncPayment(pendingBooking.id).catch(() => null);
+          if (synced && synced.booking.payment_status === 'paid') {
+            setPayResult('success');
+            setPendingBooking(null);
+            setConfirmed(synced.booking);
+          } else {
+            await api.failPayment(pendingBooking.id).catch(() => {});
+            setPayResult('failed');
+            setPaymentError('Payment window closed before completing. Nothing was charged — retry or pay later from My Bookings.');
+          }
+        },
+      });
+    } catch (err: any) {
+      setPaymentError(err.message || 'Payment could not be completed. You can retry from My Bookings.');
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  // Attempt to open WhatsApp with the full booking details right after confirmation.
+  // Browsers may block the popup — the explicit button on the success screen always works.
+  useEffect(() => {
+    if (confirmed?.guest_whatsapp_link) {
+      try {
+        window.open(confirmed.guest_whatsapp_link, '_blank', 'noopener');
+      } catch {
+        /* popup blocked */
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmed?.id]);
 
   if (loading) {
     return (
@@ -259,8 +421,10 @@ export function BookingPage() {
             </div>
 
             <div className="space-y-2">
-              <p className="overline">Hold secured</p>
-              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Your dates are locked</h1>
+              <p className="overline">{confirmed.payment_status === 'paid' ? 'Payment successful' : 'Hold secured'}</p>
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+                {confirmed.payment_status === 'paid' ? 'Your stay is booked' : 'Your dates are locked'}
+              </h1>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -272,6 +436,11 @@ export function BookingPage() {
               <p className="text-sm text-ink-2">
                 {confirmed.check_in} → {confirmed.check_out} · {guests} guest{guests > 1 ? 's' : ''} · {nights} night{nights > 1 ? 's' : ''}
               </p>
+              {confirmed.payment_status === 'paid' ? (
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ok">
+                  20% hold paid ₹{confirmed.advance_paid} · balance ₹{confirmed.balance_payable_at_property} at the property
+                </p>
+              ) : null}
             </div>
 
             <div className="flex items-end justify-center gap-0.5" aria-hidden="true">
@@ -286,19 +455,174 @@ export function BookingPage() {
               ))}
             </div>
 
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            <div className="flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+              {confirmed.guest_whatsapp_link ? (
+                <a
+                  href={confirmed.guest_whatsapp_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-ok px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ok/90"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Send details to my WhatsApp
+                </a>
+              ) : null}
               <Button onClick={() => navigate(`/reservation/${confirmed.reference_code}`)}>View reservation</Button>
               {confirmed.whatsapp_link ? (
                 <a
                   href={confirmed.whatsapp_link}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-ok px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ok/90"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-2 bg-elevated px-5 py-2.5 text-sm font-medium text-ink-2 transition-colors hover:border-tide hover:text-tide"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Coordinate arrival
+                  Message the host
                 </a>
               ) : null}
+            </div>
+            <p className="text-[11px] text-ink-3">
+              Your WhatsApp opens with the full booking details pre-filled — reference, stay, host, dates, room, amounts and
+              balance. Just press send.
+            </p>
+          </motion.div>
+        ) : payResult === 'failed' && pendingBooking ? (
+          <motion.div
+            key="failed"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: easeOut }}
+            className="mx-auto max-w-lg space-y-6 text-center"
+          >
+            <div className="mx-auto w-fit">
+              <motion.svg viewBox="0 0 52 52" className="h-20 w-20">
+                <motion.circle
+                  cx="26"
+                  cy="26"
+                  r="24"
+                  fill="none"
+                  stroke="var(--c-err)"
+                  strokeWidth="2"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+                <motion.path
+                  d="M18 18 L34 34 M34 18 L18 34"
+                  fill="none"
+                  stroke="var(--c-err)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.4, delay: 0.55, ease: 'easeOut' }}
+                />
+              </motion.svg>
+            </div>
+
+            <div className="space-y-2">
+              <p className="overline !text-err">Payment failed</p>
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">We couldn't complete your payment</h1>
+              <p className="mx-auto max-w-sm text-sm text-ink-2">{paymentError || 'Your payment was declined. Nothing was charged.'}</p>
+              <div className="mx-auto w-fit rounded-xl border border-line bg-elevated px-4 py-2 font-mono-data text-lg font-semibold text-ink">
+                {pendingBooking.reference_code}
+              </div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ok">
+                Your dates are still held — retry or pay later from My Bookings.
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <Button onClick={payNow} disabled={paying}>
+                {paying ? 'Retrying…' : 'Retry payment'}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/bookings')}>
+                Pay later
+              </Button>
+            </div>
+          </motion.div>
+        ) : pendingBooking ? (
+          <motion.div
+            key="payment"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35, ease: easeOut }}
+            className="mx-auto max-w-lg space-y-5"
+          >
+            <div className="space-y-2 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-tide/15 text-tide">
+                <Check className="h-6 w-6" />
+              </div>
+              <p className="overline">Dates held · payment pending</p>
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Complete your 20% hold</h1>
+              <div className="mx-auto w-fit rounded-xl border border-line bg-elevated px-4 py-2 font-mono-data text-lg font-semibold text-ink">
+                {pendingBooking.reference_code}
+              </div>
+              <p className="text-sm text-ink-2">
+                {pendingBooking.check_in} → {pendingBooking.check_out} · {guests} guest{guests > 1 ? 's' : ''} · {nights} night
+                {nights > 1 ? 's' : ''}
+              </p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-3">
+                {homestay.title} · rooms held for 24 hours
+              </p>
+            </div>
+
+            <div className="space-y-2.5 rounded-3xl border border-line bg-elevated p-5 text-xs">
+              <div className="flex justify-between text-ink-2">
+                <span>Total stay tariff</span>
+                <span className="font-mono-data font-semibold text-ink">₹{pendingBooking.total_amount}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-tide">
+                <span>20% hold due now</span>
+                <span className="font-mono-data">₹{Math.round(pendingBooking.total_amount * 0.2)}</span>
+              </div>
+              <div className="flex justify-between border-t border-line pt-2 text-ink-2">
+                <span>80% balance at the property</span>
+                <span className="font-mono-data font-semibold text-ink">₹{pendingBooking.total_amount - Math.round(pendingBooking.total_amount * 0.2)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              <p className="overline">Payment method</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['upi', 'card', 'netbanking'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setPaymentMethod(m)}
+                    className={cn(
+                      'rounded-xl border px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors',
+                      paymentMethod === m
+                        ? 'border-tide bg-tide/10 text-tide'
+                        : 'border-line-2 bg-elevated text-ink-2 hover:border-tide hover:text-tide',
+                    )}
+                  >
+                    {m === 'upi' ? 'UPI' : m === 'card' ? 'Card' : 'Netbanking'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-ink-3">
+                Simulated gateway for this build — the payment is verified server-side before any amount is marked paid.
+              </p>
+            </div>
+
+            {paymentError ? (
+              <div className="flex items-start gap-2 rounded-xl border border-err/30 bg-err/10 p-3 text-xs font-semibold text-err">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{paymentError}</span>
+              </div>
+            ) : null}
+
+            <div className="space-y-2.5">
+              <Button onClick={payNow} disabled={paying} className="w-full py-4 text-sm font-semibold">
+                {paying ? 'Verifying payment…' : `Pay ₹${Math.round(pendingBooking.total_amount * 0.2)} securely`}
+              </Button>
+              <button
+                type="button"
+                onClick={() => navigate('/bookings')}
+                className="w-full rounded-xl border border-line-2 bg-elevated py-3 text-xs font-semibold text-ink-2 transition-colors hover:border-tide hover:text-tide"
+              >
+                Pay later — finish from My Bookings
+              </button>
             </div>
           </motion.div>
         ) : (
@@ -386,16 +710,48 @@ export function BookingPage() {
                 >
                   {step === 0 ? (
                     <div className="space-y-5">
+                      {!availabilityListed ? (
+                        <div className="flex items-start gap-2.5 rounded-2xl border border-warn/30 bg-warn/5 p-4">
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
+                          <div className="space-y-1 text-xs">
+                            <p className="font-semibold text-ink">Availability not published</p>
+                            <p className="text-ink-2">
+                              The host hasn't listed room availability for this stay yet. Please check back soon or explore other
+                              stays.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
                       <DateRangePicker
                         checkIn={checkIn}
                         checkOut={checkOut}
                         availability={stayAvailability}
-                        fewLeftThreshold={0}
+                        blockedDates={stayBlockedDates}
+                        fewLeftThreshold={3}
                         onChange={(ci, co) => {
                           setCheckIn(ci);
                           setCheckOut(co);
+                          setError(null);
                         }}
                       />
+
+                      {minRoomsLeft !== undefined && minRoomsLeft > 0 && nights > 0 ? (
+                        <p className="flex items-center gap-2 text-xs font-semibold text-tide">
+                          <Check className="h-4 w-4 shrink-0" />
+                          {minRoomsLeft} room{minRoomsLeft === 1 ? '' : 's'} left for your selected dates
+                        </p>
+                      ) : null}
+
+                      {conflictDates.length > 0 ? (
+                        <div className="flex items-start gap-2 rounded-xl border border-err/30 bg-err/10 p-3 text-xs font-medium text-err">
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                          <span>
+                            {formatDateList(conflictDates)} {conflictDates.length === 1 ? 'is fully booked' : 'are fully booked'} — no
+                            rooms left on {conflictDates.length === 1 ? 'that night' : 'those nights'}. Please select other dates.
+                          </span>
+                        </div>
+                      ) : null}
 
                       <div className="flex items-center justify-between rounded-xl border border-line-2 bg-paper-2 px-4 py-3">
                         <span className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -433,28 +789,28 @@ export function BookingPage() {
                           </button>
                         </div>
                       </div>
+                        </>
+                      )}
 
-                      {error ? (
-                        <p className="flex items-center gap-2 text-xs font-semibold text-err">
-                          <AlertCircle className="h-4 w-4 shrink-0" />
-                          {error}
-                        </p>
-                      ) : null}
+                      <AnimatePresence>
+                        {error ? <FlashMessage message={error} onDismiss={() => setError(null)} /> : null}
+                      </AnimatePresence>
                     </div>
                   ) : step === 1 ? (
                     <div className="space-y-4">
+                      <div className="flex items-start gap-2 rounded-xl border border-line bg-paper-2 p-3 text-[11px] text-ink-2">
+                        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-tide" />
+                        <span>Booked with your Coastal Trails account — this reservation is linked to your profile so it appears in your bookings only.</span>
+                      </div>
                       <Field label="Guest full name">
-                        <Input placeholder="e.g. Maya Varma" value={name} onChange={(e) => setName(e.target.value)} />
+                        <Input placeholder="e.g. Maya Varma" value={name} onChange={(e) => setName(e.target.value)} readOnly />
                       </Field>
                       <Field label="WhatsApp contact">
-                        <Input type="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                        <Input type="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} readOnly />
                       </Field>
-                      {error ? (
-                        <p className="flex items-center gap-2 text-xs font-semibold text-err">
-                          <AlertCircle className="h-4 w-4 shrink-0" />
-                          {error}
-                        </p>
-                      ) : null}
+                      <AnimatePresence>
+                        {error ? <FlashMessage message={error} onDismiss={() => setError(null)} /> : null}
+                      </AnimatePresence>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -508,16 +864,13 @@ export function BookingPage() {
                         </div>
                       </div>
 
-                      {error ? (
-                        <p className="flex items-center gap-2 text-xs font-semibold text-err">
-                          <AlertCircle className="h-4 w-4 shrink-0" />
-                          {error}
-                        </p>
-                      ) : null}
+                      <AnimatePresence>
+                        {error ? <FlashMessage message={error} onDismiss={() => setError(null)} /> : null}
+                      </AnimatePresence>
 
                       <MagneticButton className="w-full">
                         <Button onClick={submit} disabled={submitting} className="w-full py-4 text-sm font-semibold">
-                          {submitting ? 'Locking your dates…' : `Pay ₹${advance} & lock`}
+                          {submitting ? 'Locking your dates…' : 'Lock dates & continue'}
                         </Button>
                       </MagneticButton>
                       <p className="text-center text-[11px] text-ink-3">Secured hold · free cancellation within 48 h</p>
@@ -540,10 +893,17 @@ export function BookingPage() {
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Back
                   </button>
-                  <Button onClick={next} size="sm" className="gap-1.5">
-                    Continue
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
+                  {step === 0 && !availabilityListed ? (
+                    <Button onClick={() => navigate('/')} size="sm" className="gap-1.5">
+                      Explore other stays
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <Button onClick={next} size="sm" className="gap-1.5">
+                      Continue
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               ) : null}
             </div>

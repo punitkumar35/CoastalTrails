@@ -66,7 +66,7 @@ export function Navbar({
         <div className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-8 lg:px-10">
           <button onClick={() => handleNav('homestays', '/')} aria-label="Coastal Trails home" className="group flex shrink-0 items-center">
             <img
-              src="/coastal-trails-logo.svg"
+              src={theme === 'dark' ? '/coastal-trails-logo-dark.svg' : '/coastal-trails-logo.svg'}
               alt="Coastal Trails"
               className="h-14 w-auto object-contain"
             />

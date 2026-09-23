@@ -7,12 +7,19 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "seed": "node db/seed.js"
+    "seed": "node db/seed.js",
+    "email:test": "node scripts/test-email.js",
+    "whatsapp:test": "node scripts/test-whatsapp.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "sqlite3": "^5.1.7"
+    "multer": "^2.4.0",
+    "mysql2": "^3.24.4",
+    "nodemailer": "^10.0.10",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.8"
   }
 }

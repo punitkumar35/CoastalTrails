@@ -1,0 +1,6 @@
+Name: default._domainkey
+Type: TXT
+Value: v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAusbJt3Q31w9uLZK454NJ+jGrXQIw9awX87tCEelLQtYIkweEszS0IP1TiuKrwBr0d6QxjSRqiflWBh/Ix13VLNFIQROp0r1767ZMxG8mTL613nH9Pv7VJ6kfHRgqZl/QxGSVdzzHBPXxG4BfyGXCNmwFgh77I7vl9i4GhcSoWqofso16pEYPW4ETnm5gp02XyLi055l15eEClh9jIMzxC8JmYRS7XIuRSXWmOyL6wievyarW42B499WshYkOCil0l/joB5qhkCVh9ll8Eu6dy7yc5f6wIpyq0cT11MCWFwnlLPQD2KSVj8RvF9Y8BN4XpqIq+eRug83/qRZKn9dJyQIDAQAB;
+Name: _dmarc
+Type: TXT
+Value: v=DMARC1; p=none; rua=mailto:booking@coastaltrails.in

@@ -23,26 +23,33 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// Map MySQL SHOW COLUMNS output to the shape the Studio UI expects
+function mapColumns(columns) {
+  return columns.map((c, i) => ({
+    cid: i,
+    name: c.Field,
+    type: c.Type,
+    notnull: c.Null === 'NO',
+    dflt_value: c.Default,
+    pk: c.Key === 'PRI',
+  }));
+}
+
 // GET /api/db/tables - List all tables and column metadata
 router.get('/tables', async (req, res) => {
   try {
-    const tables = await all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+    const tables = await all(
+      "SELECT TABLE_NAME AS name FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME"
+    );
     const result = [];
 
     for (const t of tables) {
-      const columns = await all(`PRAGMA table_info(${t.name})`);
-      const count = await get(`SELECT COUNT(*) as count FROM ${t.name}`);
+      const columns = await all(`SHOW COLUMNS FROM \`${t.name}\``);
+      const count = await get(`SELECT COUNT(*) as count FROM \`${t.name}\``);
       result.push({
         name: t.name,
         count: count.count,
-        columns: columns.map(c => ({
-          cid: c.cid,
-          name: c.name,
-          type: c.type,
-          notnull: c.notnull === 1,
-          dflt_value: c.dflt_value,
-          pk: c.pk === 1
-        }))
+        columns: mapColumns(columns)
       });
     }
 
@@ -56,18 +63,21 @@ router.get('/tables', async (req, res) => {
 router.get('/table/:name', async (req, res) => {
   try {
     const { name } = req.params;
-    // Prevent SQL injection by verifying table name against sqlite_master
-    const tableExists = await get("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", [name]);
+    // Prevent SQL injection by verifying table name against information_schema
+    const tableExists = await get(
+      "SELECT TABLE_NAME AS name FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+      [name]
+    );
     if (!tableExists) {
       return res.status(404).json({ error: `Table '${name}' not found` });
     }
 
-    const rows = await all(`SELECT * FROM ${name} LIMIT 100`);
-    const columns = await all(`PRAGMA table_info(${name})`);
+    const rows = await all(`SELECT * FROM \`${name}\` LIMIT 100`);
+    const columns = await all(`SHOW COLUMNS FROM \`${name}\``);
 
     res.json({
       table: name,
-      columns,
+      columns: mapColumns(columns),
       rows
     });
   } catch (err) {
@@ -82,7 +92,12 @@ router.post('/query', async (req, res) => {
     if (!query) return res.status(400).json({ error: 'Missing SQL query' });
 
     const trimmed = query.trim().toUpperCase();
-    if (trimmed.startsWith('SELECT') || trimmed.startsWith('PRAGMA')) {
+    if (
+      trimmed.startsWith('SELECT') ||
+      trimmed.startsWith('SHOW') ||
+      trimmed.startsWith('DESCRIBE') ||
+      trimmed.startsWith('EXPLAIN')
+    ) {
       const rows = await all(query);
       res.json({ type: 'SELECT', rows });
     } else {
