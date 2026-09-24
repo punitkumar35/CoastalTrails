@@ -56,7 +56,7 @@ export function Navbar({
 
   const navItems: NavItem[] = [
     { id: 'homestays', label: 'Homestays', icon: Home, active: isHomestays, path: '/' },
-    { id: 'route', label: 'Trails & Ferry', icon: Compass, active: isTrails, path: '/trails' },
+    { id: 'route', label: 'Trails & Culture', icon: Compass, active: isTrails, path: '/trails' },
     { id: 'bookings', label: 'Bookings', icon: CalendarCheck, active: isBookings, path: '/bookings' },
   ];
 

@@ -28,7 +28,7 @@ const enclaves: { label: string; location: string }[] = [
 ];
 
 const planLinks: { label: string; path: string }[] = [
-  { label: 'Cliff Trails & Ferry', path: '/trails' },
+  { label: 'Trails & Culture', path: '/trails' },
   { label: 'Track Bookings', path: '/bookings' },
   { label: 'Reservation Desk', path: '/bookings' },
 ];

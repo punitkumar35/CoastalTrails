@@ -157,7 +157,7 @@ export function App() {
   const commandItems = useMemo<CommandItem[]>(
     () => [
       { id: 'home', label: 'Explore homestays', onSelect: () => navigate('/') },
-      { id: 'trails', label: 'Cliff trails & ferry', onSelect: () => navigate('/trails') },
+      { id: 'trails', label: 'Trails & Culture', onSelect: () => navigate('/trails') },
       { id: 'bookings', label: 'Track bookings', onSelect: () => navigate('/bookings') },
     ],
     [navigate],

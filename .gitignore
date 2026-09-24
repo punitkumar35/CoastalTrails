@@ -73,3 +73,6 @@ website/server/db/*.db-wal
 Coastal-admin/.vite/
 Homestay-list/node_modules/
 Homestay-list/dist/
+
+# Local handoff doc (contains live secrets - never commit)
+ANTIGRAVITY-HANDOFF.md
