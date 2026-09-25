@@ -1,39 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { Calendar, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { easeOut } from '../../lib/motion';
+
+import { toISO, parseISO, startOfDay, addDays, getTodayISO, getTomorrowISO, getDefaultStayDates } from '../../lib/dates';
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const PANEL_W = 340;
 
-function toISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function parseISO(s: string): Date | null {
-  if (!s) return null;
-  const [y, m, d] = s.split('-').map(Number);
-  if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d);
-}
-
 function fmtShort(s: string | null | undefined): string {
   const d = parseISO(s || '');
   return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
-}
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function addDays(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
 }
 
 function upcomingWeekday(target: number): Date {
@@ -44,7 +23,10 @@ function upcomingWeekday(target: number): Date {
 }
 
 const PRESETS: { label: string; get: () => { ci: string; co: string } }[] = [
-  { label: 'Tonight', get: () => ({ ci: toISO(startOfDay(new Date())), co: toISO(addDays(startOfDay(new Date()), 1)) }) },
+  {
+    label: 'Tonight',
+    get: () => ({ ci: getTodayISO(), co: getTomorrowISO() }),
+  },
   {
     label: 'This weekend',
     get: () => {
@@ -83,9 +65,20 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date>(() => startOfDay(parseISO(checkIn) || new Date()));
   const [pos, setPos] = useState<PanelPos | null>(null);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const triggerFlash = (msg: string) => {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setFlashMessage(msg);
+    flashTimerRef.current = setTimeout(() => {
+      setFlashMessage(null);
+    }, 4000);
+  };
 
   const todayISO = toISO(startOfDay(new Date()));
 
@@ -134,29 +127,81 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
   }, [open, checkIn]);
 
   const gridDays = useMemo(() => {
-    const first = new Date(month.getFullYear(), month.getMonth(), 1);
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const first = new Date(year, m, 1);
     const offset = (first.getDay() + 6) % 7;
-    const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-    const cells: { date: Date }[] = [];
-    for (let i = 0; i < offset; i++) cells.push({ date: new Date(0) });
-    for (let d = 1; d <= count; d++) cells.push({ date: new Date(month.getFullYear(), month.getMonth(), d) });
+    const count = new Date(year, m + 1, 0).getDate();
+    const prevMonthDays = new Date(year, m, 0).getDate();
+
+    const cells: { date: Date; isCurrentMonth: boolean }[] = [];
+
+    // Fill previous month trailing days
+    for (let i = offset - 1; i >= 0; i--) {
+      cells.push({
+        date: new Date(year, m - 1, prevMonthDays - i),
+        isCurrentMonth: false,
+      });
+    }
+
+    // Fill current month days
+    for (let d = 1; d <= count; d++) {
+      cells.push({
+        date: new Date(year, m, d),
+        isCurrentMonth: true,
+      });
+    }
+
+    // Fill next month leading days to complete the week
+    const remainder = cells.length % 7;
+    if (remainder !== 0) {
+      const nextDaysCount = 7 - remainder;
+      for (let d = 1; d <= nextDaysCount; d++) {
+        cells.push({
+          date: new Date(year, m + 1, d),
+          isCurrentMonth: false,
+        });
+      }
+    }
+
     return cells;
   }, [month]);
 
-  const checkoutCandidate = !!checkIn && !checkOut;
-
   function handleDayClick(iso: string) {
     const soldOut = availability?.[iso] === 0;
-    // A sold-out night can still be a valid check-out day (you leave that morning),
-    // but it can never start a stay.
-    const isCheckoutPick = checkoutCandidate && iso > checkIn;
-    if (soldOut && !isCheckoutPick) return;
-    if (isCheckoutPick) {
-      onChange(checkIn, iso);
-    } else {
-      // First pick, re-pick, or an earlier day — always start a fresh range
-      onChange(iso, '');
+
+    // Requirement 2: If user clicks on the currently selected check-in date -> UNTICK IT!
+    if (checkIn && iso === checkIn) {
+      onChange('', '');
+      setFlashMessage(null);
+      return;
     }
+
+    // If user clicks on the currently selected check-out date -> untick check-out
+    if (checkOut && iso === checkOut) {
+      onChange(checkIn, '');
+      return;
+    }
+
+    // Requirement 1: If no check-in date is selected yet -> this click sets the check-in date!
+    if (!checkIn) {
+      if (soldOut) return;
+      onChange(iso, '');
+      setFlashMessage(null);
+      return;
+    }
+
+    // Requirement 1 & 2: Check-in date is already selected and STICKS there!
+    // The user can ONLY select check-out date after check-in date (iso > checkIn)
+    if (iso > checkIn) {
+      onChange(checkIn, iso);
+      setFlashMessage(null);
+      return;
+    }
+
+    // If clicked date is before check-in date (iso < checkIn):
+    // Check-in sticks! Show flash message telling user to untick check-in first
+    triggerFlash(`Check-in is locked to ${fmtShort(checkIn)}. Click ${fmtShort(checkIn)} to untick it, or select a check-out date after it.`);
   }
 
   const monthLabel = month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -178,18 +223,22 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
 
   return (
     <div ref={rootRef} className={cn('relative', className)}>
-      <button
+      <div
         ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        aria-label="Choose dates"
-        aria-expanded={open}
         className={cn(
           'flex w-full items-stretch overflow-hidden rounded-xl border text-left transition-all',
           open ? 'border-tide bg-elevated ring-2 ring-tide/20' : 'border-line-2 bg-elevated hover:border-tide',
         )}
       >
-        <span className="flex flex-1 flex-col px-3.5 py-2">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(true);
+            setFlashMessage(null);
+          }}
+          aria-label="Choose check-in date"
+          className="flex flex-1 flex-col px-3.5 py-2 text-left hover:bg-paper-2/60 transition-colors cursor-pointer"
+        >
           <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink-3">
             <Calendar className="h-3 w-3 text-tide" />
             <span>Check-in</span>
@@ -197,15 +246,27 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
           <span className={cn('mt-0.5 block text-sm font-medium', checkIn ? 'text-ink' : 'text-ink-3')}>
             {checkIn ? fmtShort(checkIn) : 'Add date'}
           </span>
-        </span>
+        </button>
         <span className="w-px shrink-0 self-stretch bg-line" aria-hidden="true" />
-        <span className="flex flex-1 flex-col px-3.5 py-2">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(true);
+            if (!checkIn) {
+              triggerFlash('Please select the check-in date first');
+            } else {
+              setFlashMessage(null);
+            }
+          }}
+          aria-label="Choose check-out date"
+          className="flex flex-1 flex-col px-3.5 py-2 text-left hover:bg-paper-2/60 transition-colors cursor-pointer"
+        >
           <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-ink-3">Check-out</span>
           <span className={cn('mt-0.5 block text-sm font-medium', checkOut ? 'text-ink' : 'text-ink-3')}>
             {checkOut ? fmtShort(checkOut) : 'Add date'}
           </span>
-        </span>
-      </button>
+        </button>
+      </div>
 
       {createPortal(
         <AnimatePresence>
@@ -228,7 +289,75 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
               }}
               className="z-palette rounded-2xl border border-line bg-elevated p-4 shadow-2xl"
             >
-              <div className="mb-3 flex gap-1.5">
+              {/* Flash Alert Banner */}
+              <AnimatePresence>
+                {flashMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                    className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-err/30 bg-err/10 px-3 py-2 text-xs font-semibold text-err shadow-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-err" />
+                      <span>{flashMessage}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFlashMessage(null)}
+                      className="rounded p-0.5 text-err/70 hover:text-err hover:bg-err/10 transition-colors"
+                      title="Dismiss"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Dual check-in / check-out stage tabs */}
+              <div className="mb-2.5 grid grid-cols-2 gap-1.5 rounded-xl bg-paper-2 p-1">
+                <button
+                  type="button"
+                  onClick={() => setFlashMessage(null)}
+                  className={cn(
+                    'flex flex-col items-center justify-center rounded-lg py-1 px-2 text-center transition-all',
+                    !checkIn
+                      ? 'bg-elevated text-tide shadow-xs font-semibold ring-1 ring-tide/30'
+                      : 'text-ink-2 hover:bg-elevated/60',
+                  )}
+                >
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-ink-3">1. Check-in</span>
+                  <span className={cn('text-xs font-medium', checkIn ? 'text-ink font-semibold' : 'text-tide font-semibold')}>
+                    {checkIn ? fmtShort(checkIn) : 'Pick date'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!checkIn) {
+                      triggerFlash('Please select the check-in date first');
+                    } else if (checkOut) {
+                      onChange(checkIn, '');
+                    }
+                  }}
+                  className={cn(
+                    'flex flex-col items-center justify-center rounded-lg py-1 px-2 text-center transition-all',
+                    checkIn && !checkOut
+                      ? 'bg-elevated text-tide shadow-xs font-semibold ring-1 ring-tide/30'
+                      : !checkIn
+                        ? 'opacity-60 cursor-pointer text-ink-3'
+                        : 'text-ink-2 hover:bg-elevated/60',
+                  )}
+                >
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-ink-3">2. Check-out</span>
+                  <span className={cn('text-xs font-medium', checkOut ? 'text-ink font-semibold' : checkIn ? 'text-tide font-semibold' : 'text-ink-3')}>
+                    {checkOut ? fmtShort(checkOut) : checkIn ? 'Pick date' : 'Locked'}
+                  </span>
+                </button>
+              </div>
+
+              <div className="mb-2 flex gap-1.5">
                 {PRESETS.map((p) => (
                   <button
                     key={p.label}
@@ -243,6 +372,39 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
                     {p.label}
                   </button>
                 ))}
+              </div>
+
+              {/* Status Indicator & Untick helper */}
+              <div className="mb-2.5 flex items-center justify-between rounded-lg bg-paper-2 px-3 py-1.5 text-[11px]">
+                <div className="flex items-center gap-1.5 text-ink truncate">
+                  <span className="font-medium text-ink-3 shrink-0">Status:</span>
+                  {!checkIn ? (
+                    <span className="font-semibold text-amber-600 dark:text-amber-400 truncate">
+                      Please select check-in date
+                    </span>
+                  ) : !checkOut ? (
+                    <span className="font-semibold text-tide truncate">
+                      Check-in: {fmtShort(checkIn)} (locked) · Select check-out
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-ok truncate">
+                      {fmtShort(checkIn)} → {fmtShort(checkOut)} ({nights} night{nights > 1 ? 's' : ''})
+                    </span>
+                  )}
+                </div>
+                {checkIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange('', '');
+                      setFlashMessage(null);
+                    }}
+                    className="shrink-0 ml-2 font-mono text-[10px] font-bold text-ink-3 underline hover:text-err transition-colors"
+                    title="Click to untick check-in date"
+                  >
+                    Untick check-in
+                  </button>
+                ) : null}
               </div>
 
               <div className="mb-2 flex items-center justify-between">
@@ -274,8 +436,7 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
               </div>
 
               <div className="grid grid-cols-7 gap-y-0.5">
-                {gridDays.map((cell, i) => {
-                  if (cell.date.getFullYear() < 1970) return <div key={i} />;
+                {gridDays.map((cell) => {
                   const iso = toISO(cell.date);
                   const isPast = iso < todayISO;
                   const isCheckIn = iso === checkIn;
@@ -283,10 +444,11 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
                   const isToday = iso === todayISO;
                   const inRange = !!checkIn && !!checkOut && iso > checkIn && iso < checkOut;
                   const count = availability ? availability[iso] : undefined;
-                  const unavailable = count === 0;
-                  const fewLeft = count !== undefined && count > 0 && count <= fewLeftThreshold;
-                  const soldOutCheckout = unavailable && checkoutCandidate && iso > checkIn;
-                  const hostBlocked = blockedDates ? blockedDates[iso] || 0 : 0;
+                  const isPresentOrFuture = iso >= todayISO;
+                  const unavailable = !isPast && count === 0;
+                  const fewLeft = isPresentOrFuture && count !== undefined && count > 0 && count <= fewLeftThreshold;
+                  const soldOutCheckout = unavailable && !!checkIn && iso > checkIn;
+                  const hostBlocked = isPresentOrFuture && blockedDates ? blockedDates[iso] || 0 : 0;
                   const partiallyBlocked = hostBlocked > 0 && !unavailable;
                   return (
                     <button
@@ -295,26 +457,34 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
                       disabled={isPast || (unavailable && !soldOutCheckout)}
                       onClick={() => handleDayClick(iso)}
                       title={
-                        isPast
-                          ? 'Past date'
-                          : unavailable
-                            ? soldOutCheckout
-                              ? 'No rooms this night — can still be your check-out'
-                              : hostBlocked > 0
-                                ? 'Blocked by host — fully unavailable'
-                                : 'Fully booked'
-                            : partiallyBlocked
-                              ? `${hostBlocked} room${hostBlocked === 1 ? '' : 's'} blocked by host · ${count} left`
-                              : count !== undefined && count > 0
-                                ? `${count} room${count === 1 ? '' : 's'} left`
-                                : undefined
+                        isCheckIn
+                          ? 'Check-in date (click to untick)'
+                          : isCheckOut
+                            ? 'Check-out date'
+                            : isPast
+                              ? 'Past date'
+                              : unavailable
+                                ? soldOutCheckout
+                                  ? 'No rooms this night — can still be your check-out'
+                                  : hostBlocked > 0
+                                    ? 'Blocked by host — fully unavailable'
+                                    : 'Fully booked'
+                                : partiallyBlocked
+                                  ? `${hostBlocked} room${hostBlocked === 1 ? '' : 's'} blocked by host · ${count} left`
+                                  : count !== undefined && count > 0
+                                    ? `${count} room${count === 1 ? '' : 's'} left`
+                                    : undefined
                       }
                       className={cn(
                         'relative mx-auto flex h-9 w-9 items-center justify-center rounded-full font-display text-sm transition-all duration-micro',
-                        isPast && !unavailable && 'cursor-not-allowed text-ink-3/30',
+                        isPast && !unavailable && (cell.isCurrentMonth ? 'cursor-not-allowed text-ink-3/30' : 'cursor-not-allowed text-ink-3/15'),
                         unavailable && !soldOutCheckout && 'cursor-not-allowed bg-err/10 text-err/80',
                         partiallyBlocked && !isCheckIn && !isCheckOut && 'bg-warn/15 text-ink ring-1 ring-inset ring-warn/50',
-                        !isPast && !unavailable && !isCheckIn && !isCheckOut && !inRange && 'text-ink hover:bg-paper-2',
+                        !isPast && !unavailable && !isCheckIn && !isCheckOut && !inRange && (
+                          cell.isCurrentMonth
+                            ? 'text-ink hover:bg-paper-2'
+                            : 'text-ink-3/40 hover:bg-paper-2 hover:text-ink'
+                        ),
                         isToday && !isCheckIn && !isCheckOut && 'ring-1 ring-inset ring-tide',
                         inRange && 'bg-tide-glow/15 text-tide',
                         (isCheckIn || isCheckOut) && 'bg-tide font-semibold text-white shadow-sm',
@@ -326,8 +496,14 @@ export function DateRangePicker({ checkIn, checkOut, onChange, availability, blo
                       }
                     >
                       {cell.date.getDate()}
-                      {fewLeft && !isCheckIn && !isCheckOut ? (
-                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-ember" aria-hidden="true" />
+                      {fewLeft ? (
+                        <span
+                          className={cn(
+                            'absolute bottom-1 h-1 w-1 rounded-full',
+                            isCheckIn || isCheckOut ? 'bg-amber-300 ring-1 ring-white/60' : 'bg-ember',
+                          )}
+                          aria-hidden="true"
+                        />
                       ) : null}
                       {partiallyBlocked && !isCheckIn && !isCheckOut ? (
                         <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-warn" aria-hidden="true" />

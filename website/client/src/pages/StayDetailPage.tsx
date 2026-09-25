@@ -8,6 +8,8 @@ import {
   BedDouble,
   Calendar,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Compass,
   Footprints,
@@ -40,6 +42,7 @@ import { SpotlightCard } from '../components/ui/SpotlightCard';
 import { Rating } from '../components/ui/Rating';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
 import { cn } from '../lib/cn';
+import { getSavedOrInitialDates } from '../lib/dates';
 
 interface StayDetailPageProps {
   homestay?: Homestay | null;
@@ -109,8 +112,8 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
   const [homestay, setHomestay] = useState<Homestay | null>(propHomestay || null);
   const [loading, setLoading] = useState<boolean>(!propHomestay);
   const [activeImage, setActiveImage] = useState(0);
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
+  const [checkIn, setCheckIn] = useState<string>(() => getSavedOrInitialDates().checkIn);
+  const [checkOut, setCheckOut] = useState<string>(() => getSavedOrInitialDates().checkOut);
   const [guests, setGuests] = useState(2);
   const [wishlisted, setWishlisted] = useState(false);
   const [shared, setShared] = useState(false);
@@ -143,11 +146,9 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
     if (!homestay) return;
     try {
       setWishlisted(JSON.parse(localStorage.getItem('coastal_wishlist') || '[]').includes(homestay.id));
-      const search = JSON.parse(localStorage.getItem('gokarna_search_dates') || 'null');
-      if (search?.checkIn && search?.checkOut) {
-        setCheckIn(search.checkIn);
-        setCheckOut(search.checkOut);
-      }
+      const search = getSavedOrInitialDates();
+      setCheckIn(search.checkIn);
+      setCheckOut(search.checkOut);
     } catch {
       setWishlisted(false);
     }
@@ -372,6 +373,7 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
 
   const handleBook = () => {
     if (!homestay || !availabilityListed) return;
+    if (!checkIn || !checkOut) return;
     try {
       localStorage.setItem(
         'gokarna_booking_draft',
@@ -493,6 +495,27 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
               <Heart className={cn('h-4 w-4', wishlisted ? 'fill-ember text-ember' : 'text-ink')} />
             </button>
           </div>
+
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label="Previous photo"
+                onClick={() => setActiveImage((prev) => (prev - 1 + images.length) % images.length)}
+                className="glass absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center text-ink hover:text-white transition-all active:scale-90 z-20 cursor-pointer shadow-md"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next photo"
+                onClick={() => setActiveImage((prev) => (prev + 1) % images.length)}
+                className="glass absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center text-ink hover:text-white transition-all active:scale-90 z-20 cursor-pointer shadow-md"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
 
           {images.length > 1 ? (
             <div className="glass absolute bottom-5 right-4 rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold text-ink">
@@ -990,6 +1013,9 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
                 onChange={(ci, co) => {
                   setCheckIn(ci);
                   setCheckOut(co);
+                  try {
+                    localStorage.setItem('gokarna_search_dates', JSON.stringify({ checkIn: ci, checkOut: co }));
+                  } catch {}
                 }}
               />
             ) : (
@@ -1069,9 +1095,19 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
             </div>
 
             <MagneticButton className="w-full">
-              <Button onClick={handleBook} disabled={!availabilityListed} className="w-full py-4 text-sm font-semibold">
+              <Button
+                onClick={handleBook}
+                disabled={!availabilityListed || !checkIn || !checkOut}
+                className="w-full py-4 text-sm font-semibold"
+              >
                 <Calendar className="h-4 w-4" />
-                <span>{availabilityListed ? 'Initiate 20% Reservation' : 'Availability not published'}</span>
+                <span>
+                  {!availabilityListed
+                    ? 'Availability not published'
+                    : !checkIn || !checkOut
+                      ? 'Select dates to reserve'
+                      : 'Initiate 20% Reservation'}
+                </span>
               </Button>
             </MagneticButton>
 
@@ -1089,12 +1125,23 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
           <span className="block truncate text-[10px] font-semibold text-tide">
             {checkIn && checkOut
               ? `${new Date(checkIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${new Date(checkOut).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · 20% hold ₹${advance}`
-              : `20% hold: ₹${advance}`}
+              : 'Select dates to reserve'}
           </span>
         </div>
-        <Button onClick={handleBook} disabled={!availabilityListed} size="sm" className="shrink-0 gap-1.5">
+        <Button
+          onClick={handleBook}
+          disabled={!availabilityListed || !checkIn || !checkOut}
+          size="sm"
+          className="shrink-0 gap-1.5"
+        >
           <Calendar className="h-3.5 w-3.5" />
-          <span>{availabilityListed ? 'Reserve' : 'Unavailable'}</span>
+          <span>
+            {!availabilityListed
+              ? 'Unavailable'
+              : !checkIn || !checkOut
+                ? 'Select dates'
+                : 'Reserve'}
+          </span>
         </Button>
       </div>
 

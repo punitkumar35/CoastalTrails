@@ -63,26 +63,26 @@ export function Navbar({
   return (
     <>
       <header className="glass fixed inset-x-0 top-0 z-chrome border-b border-line">
-        <div className="relative flex h-16 w-full items-center justify-between gap-2 px-3 sm:gap-4 sm:px-8 lg:px-10">
+        <div className="relative flex h-16 w-full items-center justify-between gap-1.5 px-3 sm:gap-4 sm:px-6 lg:px-8 xl:px-10">
           <button onClick={() => handleNav('homestays', '/')} aria-label="Coastal Trails home" className="group flex shrink-0 items-center">
             <img
               src={theme === 'dark' ? '/coastal-trails-logo-dark.svg' : '/coastal-trails-logo.svg'}
               alt="Coastal Trails"
-              className="h-9 sm:h-11 md:h-13 w-auto object-contain transition-all"
+              className="h-8 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[125px] sm:max-w-none object-contain"
             />
           </button>
 
-          <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-line bg-paper-2 p-1 md:flex">
+          <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-line bg-paper-2 p-1 lg:flex shadow-xs">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id, item.path)}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors duration-micro',
+                  'flex items-center gap-1.5 rounded-full px-2.5 py-1 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
                   item.active ? 'bg-tide text-white' : 'text-ink-2 hover:text-ink',
                 )}
               >
-                <item.icon className="h-3.5 w-3.5" />
+                <item.icon className="h-3.5 w-3.5 shrink-0" />
                 <span>{item.label}</span>
               </button>
             ))}
@@ -93,21 +93,21 @@ export function Navbar({
             <button
               onClick={toggle}
               aria-label="Toggle theme"
-              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-line bg-elevated text-ink-2 transition-colors hover:text-ink"
+              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-ink-2 transition-colors hover:text-ink"
             >
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
             </button>
             {onOpenPalette ? (
               <button
                 onClick={onOpenPalette}
-                className="hidden items-center gap-2 rounded-full border border-line bg-elevated px-3 py-1.5 text-xs text-ink-3 transition-colors hover:text-ink sm:flex"
+                className="hidden items-center gap-2 rounded-full border border-line bg-elevated px-3 py-1.5 text-xs text-ink-3 transition-colors hover:text-ink xl:flex"
               >
                 <Search className="h-3.5 w-3.5" />
                 <span className="font-mono">⌘K</span>
               </button>
             ) : null}
             {currentUser ? (
-              <div ref={profileRef} className="relative">
+              <div ref={profileRef} className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsProfileOpen((p) => !p)}
@@ -156,7 +156,7 @@ export function Navbar({
               <button
                 type="button"
                 onClick={() => onOpenAuth && onOpenAuth('signin')}
-                className="flex h-8 sm:h-9 items-center gap-1 rounded-full bg-tide px-3 sm:px-3.5 text-xs font-semibold text-white transition-colors hover:bg-tide-2"
+                className="flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-tide px-2.5 sm:px-3.5 text-[11px] sm:text-xs font-semibold text-white transition-colors hover:bg-tide-2"
               >
                 <span>Sign In</span>
               </button>
@@ -166,7 +166,7 @@ export function Navbar({
       </header>
 
       <nav
-        className="glass fixed inset-x-0 bottom-0 z-chrome border-t border-line px-2 py-1.5 md:hidden"
+        className="glass fixed inset-x-0 bottom-0 z-chrome border-t border-line px-2 py-1.5 lg:hidden"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex items-center justify-around">

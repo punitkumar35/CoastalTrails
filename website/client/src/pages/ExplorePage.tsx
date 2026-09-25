@@ -11,6 +11,7 @@ import { TwinkleSparkle } from '../components/ui/Sparkle';
 import { api } from '../services/api';
 import { easeOut } from '../lib/motion';
 import { useLiveRefresh } from '../lib/live';
+import { getSavedOrInitialDates } from '../lib/dates';
 
 interface ExplorePageProps {
   homestays: Homestay[];
@@ -34,8 +35,8 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
     navigate(`/stay/${stay.id}`);
   };
   const [searchTerm, setSearchTerm] = useState('');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
+  const [checkIn, setCheckIn] = useState<string>(() => getSavedOrInitialDates().checkIn);
+  const [checkOut, setCheckOut] = useState<string>(() => getSavedOrInitialDates().checkOut);
   const [viewMode, setViewMode] = useState<'auto' | 'grid' | 'list'>('auto');
   const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_asc' | 'price_desc' | 'beach'>('recommended');
   const [selectedBeach, setSelectedBeach] = useState<string>('all');
@@ -607,24 +608,26 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                         <>
                           <button
                             type="button"
-                            aria-label="Previous photo" onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 text-white flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                            aria-label="Previous photo"
+                            onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md flex items-center justify-center active:scale-90 transition-all z-20 cursor-pointer"
                           >
-                            <ChevronLeft className="w-3.5 h-3.5" />
+                            <ChevronLeft className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
-                            aria-label="Next photo" onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 text-white flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                            aria-label="Next photo"
+                            onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md flex items-center justify-center active:scale-90 transition-all z-20 cursor-pointer"
                           >
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-4 h-4" />
                           </button>
-                          <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1">
+                          <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-20 pointer-events-none">
                             {imagesList.map((_, pIdx) => (
                               <span
                                 key={pIdx}
-                                className={`h-1 rounded-full transition-all ${
-                                  currentPhotoIdx === pIdx ? 'w-4 bg-white shadow-sm' : 'w-1 bg-white/60'
+                                className={`h-1.5 rounded-full transition-all ${
+                                  currentPhotoIdx === pIdx ? 'w-4 bg-white shadow-sm' : 'w-1.5 bg-white/60 dark:bg-white/50'
                                 }`}
                               />
                             ))}
@@ -764,6 +767,34 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/20" />
                             </div>
 
+                            {/* Photo Carousel Arrows */}
+                            {imagesList.length > 1 && (
+                              <div className="absolute inset-y-0 inset-x-3 flex items-center justify-between pointer-events-none z-10">
+                                <button
+                                  type="button"
+                                  aria-label="Previous photo"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePrevPhoto(stay.id, imagesList.length, e);
+                                  }}
+                                  className="pointer-events-auto w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-black/65 text-white border border-white/20 shadow-md backdrop-blur-md flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Next photo"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNextPhoto(stay.id, imagesList.length, e);
+                                  }}
+                                  className="pointer-events-auto w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-black/65 text-white border border-white/20 shadow-md backdrop-blur-md flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+
                             {/* Top Row: Spotlight Badges & Heart Wishlist */}
                             <div className="relative z-10 flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -901,6 +932,37 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                                 >
                                   <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-rose-500 text-rose-500' : 'text-slate-600'}`} />
                                 </button>
+
+                                {imagesList.length > 1 && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      aria-label="Previous photo"
+                                      onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
+                                      className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
+                                    >
+                                      <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label="Next photo"
+                                      onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
+                                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
+                                    >
+                                      <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                    <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-20 pointer-events-none">
+                                      {imagesList.map((_, pIdx) => (
+                                        <span
+                                          key={pIdx}
+                                          className={`h-1.5 rounded-full transition-all ${
+                                            currentPhotoIdx === pIdx ? 'w-4 bg-white shadow-sm' : 'w-1.5 bg-white/60 dark:bg-white/50'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                               </div>
 
                               <div className="px-1 pt-3.5 space-y-2">
@@ -1017,24 +1079,26 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                                 <>
                                   <button
                                     type="button"
-                                    aria-label="Previous photo" onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 hover:bg-white text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20 cursor-pointer"
+                                    aria-label="Previous photo"
+                                    onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
+                                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
                                   >
-                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                    <ChevronLeft className="w-4 h-4" />
                                   </button>
                                   <button
                                     type="button"
-                                    aria-label="Next photo" onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 hover:bg-white text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20 cursor-pointer"
+                                    aria-label="Next photo"
+                                    onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
                                   >
-                                    <ChevronRight className="w-3.5 h-3.5" />
+                                    <ChevronRight className="w-4 h-4" />
                                   </button>
-                                  <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-10">
+                                  <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-20 pointer-events-none">
                                     {imagesList.map((_, pIdx) => (
                                       <span
                                         key={pIdx}
-                                        className={`h-1 rounded-full transition-all ${
-                                          currentPhotoIdx === pIdx ? 'w-3.5 bg-white shadow-sm' : 'w-1 bg-white/60'
+                                        className={`h-1.5 rounded-full transition-all ${
+                                          currentPhotoIdx === pIdx ? 'w-4 bg-white shadow-sm' : 'w-1.5 bg-white/60 dark:bg-white/50'
                                         }`}
                                       />
                                     ))}
@@ -1160,24 +1224,26 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                               <>
                                 <button
                                   type="button"
-                                  aria-label="Previous photo" onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
-                                  className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 hover:bg-white text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20 cursor-pointer"
+                                  aria-label="Previous photo"
+                                  onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
+                                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
                                 >
-                                  <ChevronLeft className="w-3.5 h-3.5" />
+                                  <ChevronLeft className="w-4 h-4" />
                                 </button>
                                 <button
                                   type="button"
-                                  aria-label="Next photo" onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 hover:bg-white text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20 cursor-pointer"
+                                  aria-label="Next photo"
+                                  onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
                                 >
-                                  <ChevronRight className="w-3.5 h-3.5" />
+                                  <ChevronRight className="w-4 h-4" />
                                 </button>
-                                <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-10">
+                                <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-20 pointer-events-none">
                                   {imagesList.map((_, pIdx) => (
                                     <span
                                       key={pIdx}
-                                      className={`h-1 rounded-full transition-all ${
-                                        currentPhotoIdx === pIdx ? 'w-3.5 bg-white shadow-sm' : 'w-1 bg-white/60'
+                                      className={`h-1.5 rounded-full transition-all ${
+                                        currentPhotoIdx === pIdx ? 'w-4 bg-white shadow-sm' : 'w-1.5 bg-white/60 dark:bg-white/50'
                                       }`}
                                     />
                                   ))}
@@ -1294,6 +1360,37 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                           >
                             <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-rose-500 text-rose-500' : 'text-slate-600'}`} />
                           </button>
+
+                          {imagesList.length > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                aria-label="Previous photo"
+                                onClick={(e) => handlePrevPhoto(stay.id, imagesList.length, e)}
+                                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Next photo"
+                                onClick={(e) => handleNextPhoto(stay.id, imagesList.length, e)}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-200/90 dark:border-white/25 shadow-md backdrop-blur-xs flex items-center justify-center opacity-90 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-2.5 inset-x-0 flex justify-center gap-1 z-20 pointer-events-none">
+                                {imagesList.map((_, pIdx) => (
+                                  <span
+                                    key={pIdx}
+                                    className={`h-1.5 rounded-full transition-all ${
+                                      currentPhotoIdx === pIdx ? 'w-4 bg-white shadow-sm' : 'w-1.5 bg-white/60 dark:bg-white/50'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         {/* Right Content Details */}
@@ -1395,81 +1492,81 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
       </section>
 
       {/* 4. RETRO ANIME ETHICAL TOURISM STANDARDS */}
-      <section className="relative overflow-hidden rounded-3xl border-2 border-ink bg-[oklch(0.965_0.03_80)] p-8 sm:p-12">
+      <section className="relative overflow-hidden rounded-3xl border-2 border-ink/30 dark:border-line-2 bg-[oklch(0.965_0.03_80)] dark:bg-paper-2 p-8 sm:p-12 transition-colors duration-std">
         <div
-          className="pointer-events-none absolute -top-28 left-1/2 h-[420px] w-[420px] -translate-x-1/2 opacity-30"
+          className="pointer-events-none absolute -top-28 left-1/2 h-[420px] w-[420px] -translate-x-1/2 opacity-30 dark:opacity-10"
           style={{ background: 'repeating-conic-gradient(var(--c-gold) 0deg 10deg, transparent 10deg 20deg)' }}
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute bottom-6 left-6 h-36 w-36 opacity-25"
-          style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.6) 1.5px, transparent 1.5px)', backgroundSize: '9px 9px' }}
+          className="pointer-events-none absolute bottom-6 left-6 h-36 w-36 opacity-25 dark:opacity-10"
+          style={{ backgroundImage: 'radial-gradient(var(--c-ink) 1.5px, transparent 1.5px)', backgroundSize: '9px 9px' }}
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute right-8 top-10 h-24 w-24 opacity-25"
-          style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.6) 1.5px, transparent 1.5px)', backgroundSize: '7px 7px' }}
+          className="pointer-events-none absolute right-8 top-10 h-24 w-24 opacity-25 dark:opacity-10"
+          style={{ backgroundImage: 'radial-gradient(var(--c-ink) 1.5px, transparent 1.5px)', backgroundSize: '7px 7px' }}
           aria-hidden="true"
         />
 
         <div className="relative mx-auto max-w-2xl text-center">
-          <span className="inline-block -rotate-3 rounded-lg border-2 border-ink bg-gold px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-ink shadow-[3px_3px_0_0_var(--c-ink)]">
+          <span className="inline-block -rotate-3 rounded-lg border-2 border-ink dark:border-amber-400/60 bg-gold px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-950 shadow-[3px_3px_0_0_var(--c-ink)] dark:shadow-[3px_3px_0_0_rgba(0,0,0,0.5)]">
             Direct &amp; Transparent ★
           </span>
           <h2 className="mt-5 font-display text-4xl font-bold uppercase tracking-tight text-ink sm:text-5xl">
             The Coastal Trails{' '}
             <span style={{ WebkitTextStroke: '2px var(--c-ink)', color: 'transparent' }}>Standard</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm font-medium leading-relaxed text-ink/80">
+          <p className="mx-auto mt-4 max-w-xl text-sm font-medium leading-relaxed text-ink/80 dark:text-ink-2">
             Preserving Karavali family homestays through transparency, direct host coordination, and low-impact tourism.
           </p>
         </div>
 
         <div className="relative mt-12 grid grid-cols-1 gap-7 md:grid-cols-3">
-          <div className="relative rotate-1 rounded-2xl border-2 border-ink bg-[oklch(0.99_0.006_95)] p-6 shadow-[6px_6px_0_0_var(--c-ink)] transition-transform duration-300 hover:rotate-0">
+          <div className="relative rotate-1 rounded-2xl border-2 border-ink/40 dark:border-line-2 bg-[oklch(0.99_0.006_95)] dark:bg-elevated p-6 shadow-[6px_6px_0_0_var(--c-ink)] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.5)] transition-transform duration-300 hover:rotate-0">
             <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink bg-tide-glow">
-                <HeartHandshake className="h-5 w-5 text-ink" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink dark:border-line-2 bg-tide-glow text-slate-950">
+                <HeartHandshake className="h-5 w-5 text-slate-950" />
               </div>
-              <span className="font-mono text-[10px] font-bold tracking-widest text-ink/60">EP 01</span>
+              <span className="font-mono text-[10px] font-bold tracking-widest text-ink/60 dark:text-ink-3">EP 01</span>
             </div>
             <h3 className="mt-4 font-display text-xl font-bold uppercase leading-tight text-ink">10% Fair Host Model</h3>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-ink/80">
+            <p className="mt-2 text-xs font-medium leading-relaxed text-ink/80 dark:text-ink-2">
               Unlike corporate aggregators charging 25–30%, we cap fees at 10%, keeping 90% directly with local families.
             </p>
-            <span className="mt-4 inline-block rotate-2 border-2 border-ink bg-ember px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--c-ink)]">
+            <span className="mt-4 inline-block rotate-2 border-2 border-ink dark:border-line-2 bg-ember px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--c-ink)] dark:shadow-[3px_3px_0_0_rgba(0,0,0,0.5)]">
               90% to hosts
             </span>
           </div>
 
-          <div className="relative -rotate-1 rounded-2xl border-2 border-ink bg-[oklch(0.99_0.006_95)] p-6 shadow-[6px_6px_0_0_var(--c-ink)] transition-transform duration-300 hover:rotate-0">
+          <div className="relative -rotate-1 rounded-2xl border-2 border-ink/40 dark:border-line-2 bg-[oklch(0.99_0.006_95)] dark:bg-elevated p-6 shadow-[6px_6px_0_0_var(--c-ink)] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.5)] transition-transform duration-300 hover:rotate-0">
             <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink bg-gold">
-                <ShieldCheck className="h-5 w-5 text-ink" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink dark:border-line-2 bg-gold text-slate-950">
+                <ShieldCheck className="h-5 w-5 text-slate-950" />
               </div>
-              <span className="font-mono text-[10px] font-bold tracking-widest text-ink/60">EP 02</span>
+              <span className="font-mono text-[10px] font-bold tracking-widest text-ink/60 dark:text-ink-3">EP 02</span>
             </div>
             <h3 className="mt-4 font-display text-xl font-bold uppercase leading-tight text-ink">20% Hold Guarantee</h3>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-ink/80">
+            <p className="mt-2 text-xs font-medium leading-relaxed text-ink/80 dark:text-ink-2">
               Pay 20% online to freeze dates in the database. Settle the remaining 80% with the host upon arrival.
             </p>
-            <span className="mt-4 inline-block -rotate-2 border-2 border-ink bg-tide px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--c-ink)]">
+            <span className="mt-4 inline-block -rotate-2 border-2 border-ink dark:border-line-2 bg-tide px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--c-ink)] dark:shadow-[3px_3px_0_0_rgba(0,0,0,0.5)]">
               Freeze your dates
             </span>
           </div>
 
-          <div className="relative rotate-1 rounded-2xl border-2 border-ink bg-[oklch(0.99_0.006_95)] p-6 shadow-[6px_6px_0_0_var(--c-ink)] transition-transform duration-300 hover:rotate-0">
+          <div className="relative rotate-1 rounded-2xl border-2 border-ink/40 dark:border-line-2 bg-[oklch(0.99_0.006_95)] dark:bg-elevated p-6 shadow-[6px_6px_0_0_var(--c-ink)] dark:shadow-[6px_6px_0_0_rgba(0,0,0,0.5)] transition-transform duration-300 hover:rotate-0">
             <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink bg-[oklch(0.85_0.12_60)]">
-                <Compass className="h-5 w-5 text-ink" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink dark:border-line-2 bg-tide/20 dark:bg-tide/40 text-tide dark:text-tide-glow">
+                <Compass className="h-5 w-5 text-tide dark:text-tide-glow" />
               </div>
-              <span className="font-mono text-[10px] font-bold tracking-widest text-ink/60">EP 03</span>
+              <span className="font-mono text-[10px] font-bold tracking-widest text-ink/60 dark:text-ink-3">EP 03</span>
             </div>
             <h3 className="mt-4 font-display text-xl font-bold uppercase leading-tight text-ink">Mapped Cliff Trails</h3>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-ink/80">
+            <p className="mt-2 text-xs font-medium leading-relaxed text-ink/80 dark:text-ink-2">
               Every cottage is mapped with cliff trail walking times, boat ferry schedules, and local auto dispatcher helplines.
             </p>
-            <span className="mt-4 inline-block rotate-1 border-2 border-ink bg-gold px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--c-ink)]">
+            <span className="mt-4 inline-block rotate-1 border-2 border-ink dark:border-line-2 bg-gold px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-950 shadow-[3px_3px_0_0_var(--c-ink)] dark:shadow-[3px_3px_0_0_rgba(0,0,0,0.5)]">
               6 enclaves mapped
             </span>
           </div>
