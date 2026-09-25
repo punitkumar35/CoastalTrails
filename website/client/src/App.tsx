@@ -205,7 +205,7 @@ export function App() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper text-ink">
+    <div className="flex min-h-dvh flex-col bg-paper text-ink overflow-x-hidden">
       <TideLine />
       <GrainOverlay />
       <ClickSpark />
@@ -224,7 +224,7 @@ export function App() {
         onOpenPalette={() => setIsPaletteOpen(true)}
       />
 
-      <main className="w-full flex-1 px-4 pb-6 pt-20 sm:px-8 sm:pt-24 lg:px-10">
+      <main className="w-full flex-1 px-3 pb-24 pt-18 sm:px-8 sm:pb-8 sm:pt-24 lg:px-10">
         <motion.div
           key={location.pathname}
           initial={{ opacity: 0, y: 8 }}

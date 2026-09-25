@@ -134,7 +134,7 @@ export function AssistantChat() {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? 'Close assistant' : 'Open coastal assistant'}
         whileTap={{ scale: 0.92 }}
-        className="fixed bottom-24 right-4 z-chrome flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-tide to-tide-2 text-white shadow-lg shadow-tide/30 md:bottom-6 md:right-6"
+        className="fixed bottom-20 right-3 z-30 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-br from-tide to-tide-2 text-white shadow-lg shadow-tide/30 md:bottom-6 md:right-6"
       >
         <span className="absolute inset-0 rounded-full bg-tide/40 animate-ping" style={{ animationDuration: '2.4s' }} />
         <AnimatePresence mode="wait" initial={false}>
@@ -146,7 +146,7 @@ export function AssistantChat() {
             transition={springSoft}
             className="relative flex"
           >
-            {open ? <X className="h-6 w-6" /> : <Waves className="h-6 w-6" />}
+            {open ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Waves className="h-5 w-5 sm:h-6 sm:w-6" />}
           </motion.span>
         </AnimatePresence>
       </motion.button>
@@ -158,7 +158,7 @@ export function AssistantChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={springSoft}
-            className="glass fixed bottom-40 right-4 z-chrome flex max-h-[65vh] w-[calc(100vw-2rem)] max-w-[380px] flex-col overflow-hidden rounded-3xl md:bottom-24 md:right-6"
+            className="glass fixed bottom-36 right-3 z-30 flex max-h-[65vh] w-[calc(100vw-1.5rem)] max-w-[380px] flex-col overflow-hidden rounded-3xl md:bottom-24 md:right-6"
             role="dialog"
             aria-label="Coastal assistant"
           >

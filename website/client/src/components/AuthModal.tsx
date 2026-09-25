@@ -112,7 +112,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     'flex items-center rounded-xl border border-line-2 bg-paper-2 transition-all focus-within:border-tide focus-within:ring-2 focus-within:ring-tide/20';
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="glass max-w-3xl overflow-hidden p-0">
+    <Dialog open={isOpen} onClose={onClose} className="glass max-w-3xl max-h-[92dvh] overflow-y-auto p-0">
       <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr]">
         <div className="relative hidden h-full min-h-[600px] overflow-hidden md:block">
           <img src="/images/hero-raman.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -236,7 +236,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="e.g. Punit Naik"
-                          className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                          className="w-full bg-transparent px-3 py-2.5 text-base md:text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
                         />
                       </div>
                     </motion.div>
@@ -255,7 +255,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="+91 98765 43210"
                             autoComplete="tel"
-                            className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                            className="w-full bg-transparent px-3 py-2.5 text-base md:text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
                           />
                         </div>
                       </motion.div>
@@ -271,7 +271,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="name@example.com"
                             autoComplete="email"
-                            className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                            className="w-full bg-transparent px-3 py-2.5 text-base md:text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
                           />
                         </div>
                       </motion.div>
@@ -290,7 +290,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                           onChange={(e) => setIdentifier(e.target.value)}
                           placeholder="+91 98765 43210 or name@example.com"
                           autoComplete="username"
-                          className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                          className="w-full bg-transparent px-3 py-2.5 text-base md:text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
                         />
                       </div>
                     </motion.div>
@@ -318,7 +318,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                        className="w-full bg-transparent px-3 py-2.5 text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
+                        className="w-full bg-transparent px-3 py-2.5 text-base md:text-sm font-medium text-ink placeholder:text-ink-3 focus:outline-none"
                       />
                       <button
                         type="button"
