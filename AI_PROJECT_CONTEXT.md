@@ -134,6 +134,12 @@ RAZORPAY_KEY_SECRET=oK2b0vv8PikwsmRZipUokZWa
 RAZORPAY_WEBHOOK_SECRET=21c9f1b64efe2c355d9ed08c701ee7f16c5ffa00c5e121c1757d787912093e22
 ```
 
+### F. Google OAuth 2.0 (Google Identity Services)
+```env
+GOOGLE_CLIENT_ID=974982463288-6ruuja5kjpojen2f5cnaoai80bk1ced3.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=974982463288-6ruuja5kjpojen2f5cnaoai80bk1ced3.apps.googleusercontent.com
+```
+
 ---
 
 ## 6. Key Application Routes & Navigation
