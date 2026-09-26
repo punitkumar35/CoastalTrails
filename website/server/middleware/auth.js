@@ -35,7 +35,7 @@ export async function requireAuth(req, res, next) {
     }
 
     const session = await get(
-      `SELECT s.token, s.expires_at, u.id, u.name, u.phone, u.email, u.role
+      `SELECT s.token, s.expires_at, u.id, u.name, u.phone, u.email, u.role, u.avatar_url
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
       [token]
@@ -50,7 +50,7 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
     }
 
-    req.user = { id: session.id, name: session.name, phone: session.phone, email: session.email, role: session.role };
+    req.user = { id: session.id, name: session.name, phone: session.phone, email: session.email, role: session.role, avatar_url: session.avatar_url };
     req.authToken = token;
     return next();
   } catch (err) {
@@ -75,13 +75,13 @@ export async function optionalAuth(req, res, next) {
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
     if (!token) return next();
     const session = await get(
-      `SELECT s.expires_at, u.id, u.name, u.phone, u.email, u.role
+      `SELECT s.expires_at, u.id, u.name, u.phone, u.email, u.role, u.avatar_url
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
       [token]
     );
     if (session && new Date(String(session.expires_at).replace(' ', 'T')) >= new Date()) {
-      req.user = { id: session.id, name: session.name, phone: session.phone, email: session.email, role: session.role };
+      req.user = { id: session.id, name: session.name, phone: session.phone, email: session.email, role: session.role, avatar_url: session.avatar_url };
       req.authToken = token;
     }
     return next();

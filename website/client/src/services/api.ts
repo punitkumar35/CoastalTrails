@@ -59,6 +59,7 @@ async function authRequest(path: string, body: Record<string, unknown>, retry = 
     name: data.name,
     phone: data.phone || '',
     email: data.email || undefined,
+    avatar: data.avatar_url || data.avatar || undefined,
     token: data.token,
   };
 }
@@ -294,6 +295,10 @@ export const api = {
 
   async login(identifier: string, password: string): Promise<User> {
     return authRequest('/auth/login', { identifier, password });
+  },
+
+  async googleAuth(credential: string): Promise<User> {
+    return authRequest('/auth/google', { credential });
   },
 
   async logout(): Promise<void> {

@@ -135,6 +135,18 @@ async function runMigrations() {
     console.log('Migration applied: reviews.booking_id column added.');
   }
 
+  // Google OAuth support: google_id, avatar_url, and nullable phone
+  const [googleColumns] = await pool.query("SHOW COLUMNS FROM users LIKE 'google_id'");
+  if (googleColumns.length === 0) {
+    await pool.query('ALTER TABLE users ADD COLUMN google_id VARCHAR(128) NULL, ADD COLUMN avatar_url VARCHAR(512) NULL');
+    await pool.query('ALTER TABLE users ADD INDEX idx_users_google (google_id)');
+    console.log('Migration applied: users.google_id and avatar_url added.');
+  }
+
+  try {
+    await pool.query('ALTER TABLE users MODIFY COLUMN phone VARCHAR(32) NULL');
+  } catch (e) {}
+
   // Payment state is tracked separately from the reservation state
   const [paymentColumns] = await pool.query("SHOW COLUMNS FROM bookings LIKE 'payment_status'");
   if (paymentColumns.length === 0) {

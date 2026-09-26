@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { get, run } from '../db/index.js';
 import { requireAuth, startSession, endSession } from '../middleware/auth.js';
 import { sendSignupWhatsApp } from '../utils/whatsapp.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -24,8 +25,53 @@ function sanitizeUser(row) {
     name: row.name,
     phone: row.phone || undefined,
     email: row.email || undefined,
+    avatar_url: row.avatar_url || undefined,
     role: row.role,
   };
+}
+
+async function verifyGoogleToken(credential) {
+  if (!credential) return null;
+
+  // 1. Dev / test mode token
+  if (process.env.NODE_ENV !== 'production' && credential.startsWith('dev_')) {
+    const parts = credential.split(':');
+    const email = (parts[1] || 'traveler@coastaltrails.in').toLowerCase();
+    const name = parts[2] || 'Trail Explorer';
+    return {
+      googleId: 'dev_gid_' + Buffer.from(email).toString('hex').slice(0, 16),
+      email,
+      name,
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
+    };
+  }
+
+  // 2. Official Google tokeninfo verification
+  try {
+    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) {
+      console.warn('Google tokeninfo rejected token with status:', res.status);
+      return null;
+    }
+    const data = await res.json();
+    if (!data || !data.sub || !data.email) {
+      return null;
+    }
+    if (process.env.GOOGLE_CLIENT_ID && data.aud !== process.env.GOOGLE_CLIENT_ID) {
+      console.warn('Google token aud mismatch:', data.aud);
+      return null;
+    }
+    return {
+      googleId: data.sub,
+      email: data.email.toLowerCase(),
+      name: data.name || data.email.split('@')[0],
+      avatarUrl: data.picture || null,
+    };
+  } catch (err) {
+    console.error('Google token verification error:', err.message);
+    return null;
+  }
 }
 
 function validateRegistration({ name, phone, email, password }) {
@@ -77,7 +123,7 @@ function recordFailedAttempt(key) {
 }
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { name, phone, email, password } = req.body || {};
     const errors = validateRegistration({ name, phone, email, password });
@@ -124,7 +170,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { identifier, password } = req.body || {};
     const cleanIdentifier = String(identifier || '').trim();
@@ -160,6 +206,54 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err.message);
     return res.status(500).json({ error: 'Could not sign you in right now. Please try again.' });
+  }
+});
+
+// POST /api/auth/google - One-click Google Sign-In & Registration
+router.post('/google', authLimiter, async (req, res) => {
+  try {
+    const { credential } = req.body || {};
+    if (!credential) {
+      return res.status(400).json({ error: 'Google credential is required.' });
+    }
+
+    const payload = await verifyGoogleToken(credential);
+    if (!payload) {
+      return res.status(401).json({ error: 'Invalid Google sign-in credential. Please try again.' });
+    }
+
+    const { googleId, email, name, avatarUrl } = payload;
+
+    // 1. Match by google_id
+    let user = await get('SELECT * FROM users WHERE google_id = ?', [googleId]);
+
+    // 2. If not matched by google_id, match by email
+    if (!user) {
+      user = await get('SELECT * FROM users WHERE LOWER(email) = ?', [email]);
+      if (user) {
+        await run(
+          'UPDATE users SET google_id = ?, avatar_url = COALESCE(avatar_url, ?) WHERE id = ?',
+          [googleId, avatarUrl, user.id]
+        );
+        user = await get('SELECT * FROM users WHERE id = ?', [user.id]);
+      } else {
+        const id = 'usr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        await run(
+          'INSERT INTO users (id, name, email, google_id, avatar_url, role) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, name, email, googleId, avatarUrl, 'traveler']
+        );
+        user = await get('SELECT * FROM users WHERE id = ?', [id]);
+      }
+    } else if (avatarUrl && !user.avatar_url) {
+      await run('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, user.id]);
+      user.avatar_url = avatarUrl;
+    }
+
+    const token = await startSession(user.id);
+    return res.json({ ...sanitizeUser(user), token });
+  } catch (err) {
+    console.error('Google auth error:', err.message);
+    return res.status(500).json({ error: 'Google sign-in could not be completed. Please try again.' });
   }
 });
 

@@ -2,6 +2,7 @@ import express from 'express';
 import { all, get, run } from '../db/index.js';
 import { expireStaleHolds, getRoomsLeftMap, eachNight, localTodayISO, localDateTime, pickRoomForStay } from '../db/availability.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { bookingLimiter } from '../middleware/rateLimiter.js';
 import {
   sendBookingStatusEmail,
   sendHoldCreatedEmail,
@@ -147,7 +148,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 // POST /api/bookings - Create new booking with 20% advance calculation
 // The author of the booking is the authenticated user — never the browser payload.
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', bookingLimiter, requireAuth, async (req, res) => {
   try {
     const {
       homestay_id,

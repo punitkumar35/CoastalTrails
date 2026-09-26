@@ -186,8 +186,23 @@ RAZORPAY_WEBHOOK_SECRET=21c9f1b64efe2c355d9ed08c701ee7f16c5ffa00c5e121c1757d7879
 
 ---
 
-## 8. Current Work Roadmap (Local Development)
+## 8. Rate Limiting & OAuth (Google Sign-In) Implementation
 
-- **Rate Limiting:** Protect `/api/` from abuse and `/api/auth/login` from brute force attacks using in-memory token/leaky bucket rate limiting with real IP detection via `cf-connecting-ip`.
-- **OAuth (Google Login):** Add Google One Tap / Google OAuth 2.0 to traveler sign-in for seamless one-click authentication without password friction.
+- **Rate Limiting (`website/server/middleware/rateLimiter.js`):**
+  - Uses `express-rate-limit` with Cloudflare real-IP extraction (`cf-connecting-ip` / `x-forwarded-for`).
+  - `generalApiLimiter`: 200 requests per 1-minute window across `/api/*`.
+  - `authLimiter`: 15 requests per 15-minute window on `/api/auth/register`, `/api/auth/login`, and `/api/auth/google` with standard `RateLimit-*` headers and HTTP 429 response.
+  - `bookingLimiter`: 15 booking attempts per minute on `POST /api/bookings`.
+- **OAuth (Google Sign-In):**
+  - **Backend (`POST /api/auth/google`):**
+    - Verifies Google token via Google Identity Services (`oauth2.googleapis.com/tokeninfo?id_token=...`).
+    - Supports local dev token simulation (`dev_token:<email>:<name>`) for rapid testing without pre-configured cloud credentials.
+    - Matches or registers traveler in MySQL `users` table (`google_id`, `name`, `email`, `avatar_url`), links accounts safely, and generates a valid 30-day session token.
+  - **Database Migration (`website/server/db/index.js`):**
+    - Added `google_id VARCHAR(128) NULL` and `avatar_url VARCHAR(512) NULL` to `users`.
+    - Made `phone VARCHAR(32) NULL` so Google users can sign in instantly and provide phone numbers at booking time.
+  - **Frontend UI (`website/client/src/components/AuthModal.tsx` & `Navbar.tsx`):**
+    - Clean "Continue with Google" button with official Google 4-color icon and divider.
+    - Integrated with Google Identity Services (`https://accounts.google.com/gsi/client`) via `VITE_GOOGLE_CLIENT_ID` with automatic dev-fallback.
+    - Displays Google traveler profile photo in the Navbar menu with graceful initial fallback.
 

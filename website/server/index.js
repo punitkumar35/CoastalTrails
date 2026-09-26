@@ -17,8 +17,13 @@ import authRouter from './routes/auth.js';
 import reviewsRouter from './routes/reviews.js';
 import paymentsRouter from './routes/payments.js';
 
+import { generalApiLimiter } from './middleware/rateLimiter.js';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Trust reverse proxy (cPanel / Cloudflare)
+app.set('trust proxy', 1);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,6 +54,9 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
+
+// Global API Rate Limiter
+app.use('/api', generalApiLimiter);
 
 // Mount Routes
 app.use('/api/homestays', homestaysRouter);

@@ -114,9 +114,18 @@ export function Navbar({
                   className="flex items-center gap-1.5 rounded-full border border-line bg-elevated p-1 sm:py-1 sm:pl-1 sm:pr-3 text-xs font-semibold text-ink transition-colors hover:border-tide/50"
                   aria-label="User menu"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-tide text-xs uppercase text-white shadow-xs">
-                    {currentUser.name.charAt(0)}
-                  </span>
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                      className="h-7 w-7 rounded-full object-cover shadow-xs"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-tide text-xs uppercase text-white shadow-xs">
+                      {currentUser.name.charAt(0)}
+                    </span>
+                  )}
                   <span className="hidden max-w-[90px] truncate sm:inline">{currentUser.name.split(' ')[0]}</span>
                 </button>
                 {isProfileOpen ? (
