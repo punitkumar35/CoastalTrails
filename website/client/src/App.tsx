@@ -224,7 +224,7 @@ export function App() {
         onOpenPalette={() => setIsPaletteOpen(true)}
       />
 
-      <main className="w-full flex-1 px-4 pb-6 pt-20 sm:px-8 sm:pt-24 lg:px-10">
+      <main className="w-full flex-1 px-4 pb-20 pt-20 sm:px-8 sm:pt-24 lg:px-10 lg:pb-8">
         <motion.div
           key={location.pathname}
           initial={{ opacity: 0, y: 8 }}

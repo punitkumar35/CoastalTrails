@@ -28,6 +28,7 @@ import { MagneticButton } from '../components/ui/MagneticButton';
 import { Input, Field } from '../components/ui/Input';
 import { cn } from '../lib/cn';
 import { easeOut, springFast } from '../lib/motion';
+import { getSavedOrInitialDates } from '../lib/dates';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80';
@@ -146,8 +147,20 @@ export function BookingPage({
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
+  const [checkIn, setCheckIn] = useState<string>(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem('gokarna_booking_draft') || 'null');
+      if (draft?.check_in) return draft.check_in;
+    } catch {}
+    return getSavedOrInitialDates().checkIn;
+  });
+  const [checkOut, setCheckOut] = useState<string>(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem('gokarna_booking_draft') || 'null');
+      if (draft?.check_out) return draft.check_out;
+    } catch {}
+    return getSavedOrInitialDates().checkOut;
+  });
   const [guests, setGuests] = useState(2);
   const [name, setName] = useState(currentUser?.name ?? '');
   const [phone, setPhone] = useState(currentUser?.phone ?? '');
@@ -204,11 +217,9 @@ export function BookingPage({
         if (draft.guests) setGuests(draft.guests);
         return;
       }
-      const search = JSON.parse(localStorage.getItem('gokarna_search_dates') || 'null');
-      if (search?.checkIn && search?.checkOut) {
-        setCheckIn(search.checkIn);
-        setCheckOut(search.checkOut);
-      }
+      const search = getSavedOrInitialDates();
+      setCheckIn(search.checkIn);
+      setCheckOut(search.checkOut);
     } catch {
       /* storage unavailable */
     }
@@ -774,6 +785,9 @@ export function BookingPage({
                           setCheckIn(ci);
                           setCheckOut(co);
                           setError(null);
+                          try {
+                            localStorage.setItem('gokarna_search_dates', JSON.stringify({ checkIn: ci, checkOut: co }));
+                          } catch {}
                         }}
                       />
 

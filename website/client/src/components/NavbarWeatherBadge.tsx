@@ -123,41 +123,40 @@ export const NavbarWeatherBadge: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="group px-2.5 sm:px-3 py-1.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs hover:shadow-xs transition-all duration-200 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+        className="group h-8 sm:h-9 px-2 sm:px-2.5 rounded-full bg-elevated hover:bg-paper-2 border border-line shadow-2xs transition-colors duration-200 flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0"
         title="Live Gokarna Weather Telemetry"
       >
-        <span className="relative flex h-2 w-2">
+        <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-emerald-500"></span>
         </span>
 
-        <Sun className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-45 transition-transform duration-500" />
+        <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0 group-hover:rotate-45 transition-transform duration-500" />
 
-        <span className="font-mono text-xs font-bold text-slate-800">
+        <span className="font-mono text-[11px] sm:text-xs font-bold text-ink whitespace-nowrap">
           {data.temperature}°C
         </span>
 
-        <span className="text-[11px] font-medium text-slate-500 hidden sm:inline">
+        <span className="text-[11px] font-medium text-ink-3 hidden xl:inline">
           Gokarna
         </span>
       </button>
 
-      {/* Floating Popover - 100% Solid White Opaque, Never Transparent */}
+      {/* Floating Popover */}
       {isOpen && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 sm:right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white border border-slate-200 shadow-2xl p-4 space-y-3 z-[100] animate-in fade-in slide-in-from-top-1 duration-150"
-          style={{ backgroundColor: '#ffffff', opacity: 1 }}
+          className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-elevated border border-line shadow-2xl p-4 space-y-3 z-[100] animate-in fade-in slide-in-from-top-1 duration-150"
         >
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="flex items-center justify-between pb-2 border-b border-line">
             <div className="flex items-center gap-1.5">
-              <CloudSun className="w-4 h-4 text-sky-600" />
-              <span className="font-serif text-xs font-bold text-slate-900">
+              <CloudSun className="w-4 h-4 text-tide" />
+              <span className="font-display text-xs font-bold text-ink">
                 Gokarna Coastline
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono text-slate-400">
+              <span className="text-[10px] font-mono text-ink-3">
                 {data.lastUpdated} IST
               </span>
               <button
@@ -166,15 +165,15 @@ export const NavbarWeatherBadge: React.FC = () => {
                   e.stopPropagation();
                   fetchLiveWeather();
                 }}
-                className="p-1 rounded-md text-slate-400 hover:text-sky-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1 rounded-md text-ink-3 hover:text-tide hover:bg-paper-2 transition-colors cursor-pointer"
                 title="Refresh Live Data"
               >
-                <RefreshCw className={`w-3 h-3 ${data.loading ? 'animate-spin text-sky-600' : ''}`} />
+                <RefreshCw className={`w-3 h-3 ${data.loading ? 'animate-spin text-tide' : ''}`} />
               </button>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="sm:hidden p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer ml-1"
+                className="sm:hidden p-1 rounded-md text-ink-3 hover:text-ink hover:bg-paper-2 transition-colors cursor-pointer ml-1"
                 title="Close"
               >
                 <X className="w-3.5 h-3.5" />
@@ -182,17 +181,17 @@ export const NavbarWeatherBadge: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-sky-50 p-3 rounded-xl border border-sky-100">
+          <div className="flex items-center justify-between bg-tide/10 p-3 rounded-xl border border-tide/20">
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-serif text-3xl font-bold text-slate-900">
+                <span className="font-display text-3xl font-bold text-ink">
                   {data.temperature}°C
                 </span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-ink-2 font-medium">
                   Feels {data.apparentTemperature}°C
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-sky-900 mt-0.5">
+              <p className="text-[11px] font-medium text-tide mt-0.5">
                 {getWeatherDesc(data.weatherCode)}
               </p>
             </div>
@@ -200,56 +199,56 @@ export const NavbarWeatherBadge: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <div className="flex items-center gap-1.5 text-sky-700">
+            <div className="p-2.5 rounded-xl bg-paper-2 border border-line space-y-1">
+              <div className="flex items-center gap-1.5 text-tide">
                 <Waves className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-ink-3">
                   Arabian Swell
                 </span>
               </div>
-              <div className="font-mono font-bold text-slate-800">
+              <div className="font-mono font-bold text-ink">
                 {data.waveHeight}m Gentle
               </div>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <div className="flex items-center gap-1.5 text-amber-600">
+            <div className="p-2.5 rounded-xl bg-paper-2 border border-line space-y-1">
+              <div className="flex items-center gap-1.5 text-amber-500">
                 <Sunset className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-ink-3">
                   Sunset
                 </span>
               </div>
-              <div className="font-mono font-bold text-slate-800">
+              <div className="font-mono font-bold text-ink">
                 {data.sunset} IST
               </div>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <div className="flex items-center gap-1.5 text-teal-600">
+            <div className="p-2.5 rounded-xl bg-paper-2 border border-line space-y-1">
+              <div className="flex items-center gap-1.5 text-tide-glow">
                 <Wind className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-ink-3">
                   Sea Breeze
                 </span>
               </div>
-              <div className="font-mono font-bold text-slate-800">
+              <div className="font-mono font-bold text-ink">
                 {data.windSpeed} km/h
               </div>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <div className="flex items-center gap-1.5 text-blue-600">
+            <div className="p-2.5 rounded-xl bg-paper-2 border border-line space-y-1">
+              <div className="flex items-center gap-1.5 text-tide">
                 <Droplets className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-ink-3">
                   Humidity
                 </span>
               </div>
-              <div className="font-mono font-bold text-slate-800">
+              <div className="font-mono font-bold text-ink">
                 {data.humidity}%
               </div>
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-400 text-center font-mono pt-1">
+          <div className="text-[10px] text-ink-3 text-center font-mono pt-1">
             Live Open-Meteo Satellite & Buoy Feed
           </div>
         </div>
