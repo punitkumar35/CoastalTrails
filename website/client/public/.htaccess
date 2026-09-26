@@ -1,0 +1,35 @@
+# ----------------------------------------------------------------------
+# Cache-Control & Expires policies for Vite React SPA
+# ----------------------------------------------------------------------
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # HTML: do not cache (always revalidate for instant deployment pickup)
+  ExpiresByType text/html "access plus 0 seconds"
+
+  # Static assets: 1 year
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # HTML: no-cache so new deploys show up immediately
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  # Hashed assets (js, css, png, svg, woff2)
+  <FilesMatch "\.(js|css|png|svg|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Favicon immutable policy
+  <Files "favicon.png">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </Files>
+</IfModule>
