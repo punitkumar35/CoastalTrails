@@ -68,7 +68,13 @@ y:/Gokarna/Gokarna-Connect/
   - Root Directory: `/home2/coastaee/public_html`
   - Traveler Web Client: Files in `/home2/coastaee/public_html` (Vite `dist`)
   - Admin Console: Files in `/home2/coastaee/public_html/admin`
-  - API Proxy: Handled via `public_html/api/index.php` and `.htaccess`, forwarding `/api/*` to `http://127.0.0.1:3458/api/*`.
+  - API Proxy: Handled via `public_html/api/index.php` and `.htaccess`, forwarding `/api/*` to `http://127.0.0.1:3456/api/*`.
+  - Cache Headers: `.htaccess` enforces 1-year immutable caching (`public, max-age=31536000, immutable`) for hashed assets and `no-cache` for HTML.
+- **Cloudflare Edge CDN (Active):**
+  - Nameservers: `arturo.ns.cloudflare.com` and `galilea.ns.cloudflare.com`
+  - Anycast Proxy IPs: `104.21.7.60` and `172.67.187.131`
+  - SSL/TLS Mode: **Full**
+  - Edge Cache Status: `CF-Cache-Status: HIT` on hashed static assets across Indian nodes (Mumbai, Chennai, Bangalore, Delhi).
 - **Production MySQL Database:**
   - Host: `localhost` (port 3306 on the cPanel host)
   - Database Name: `coastaee_gokarna`
@@ -173,6 +179,15 @@ RAZORPAY_WEBHOOK_SECRET=21c9f1b64efe2c355d9ed08c701ee7f16c5ffa00c5e121c1757d7879
    - Alias branch: `CoastalTrails-Prototype-2`.
    - Never commit `.env` or raw `.sql` database dumps to Git.
 5. **Backups Location on Disk:**
-   - Copy 1: `Y:\Gokarna\Gokarna-Connect-Backup-2026-09-25`
-   - Copy 2: `Y:\opencode\Gokarna-Connect-Backup-2026-09-25`
-   - Compressed Zip: `Y:\Gokarna\Gokarna-Connect-Backup-2026-09-25.zip`
+   - 2026-09-26 Folder: `Y:\Gokarna\Gokarna-Connect-Backup-2026-09-26`
+   - 2026-09-26 Zip: `Y:\Gokarna\Gokarna-Connect-Backup-2026-09-26.zip`
+   - 2026-09-25 Folder: `Y:\Gokarna\Gokarna-Connect-Backup-2026-09-25`
+   - 2026-09-25 Zip: `Y:\Gokarna\Gokarna-Connect-Backup-2026-09-25.zip`
+
+---
+
+## 8. Current Work Roadmap (Local Development)
+
+- **Rate Limiting:** Protect `/api/` from abuse and `/api/auth/login` from brute force attacks using in-memory token/leaky bucket rate limiting with real IP detection via `cf-connecting-ip`.
+- **OAuth (Google Login):** Add Google One Tap / Google OAuth 2.0 to traveler sign-in for seamless one-click authentication without password friction.
+
