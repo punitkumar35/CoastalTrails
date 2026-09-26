@@ -46,32 +46,49 @@ async function verifyGoogleToken(credential) {
     };
   }
 
-  // 2. Official Google tokeninfo verification
+  // 2. Official Google tokeninfo verification (ID tokens)
   try {
     const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) {
-      console.warn('Google tokeninfo rejected token with status:', res.status);
-      return null;
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.sub && data.email) {
+        if (!process.env.GOOGLE_CLIENT_ID || data.aud === process.env.GOOGLE_CLIENT_ID) {
+          return {
+            googleId: data.sub,
+            email: data.email.toLowerCase(),
+            name: data.name || data.email.split('@')[0],
+            avatarUrl: data.picture || null,
+          };
+        }
+      }
     }
-    const data = await res.json();
-    if (!data || !data.sub || !data.email) {
-      return null;
-    }
-    if (process.env.GOOGLE_CLIENT_ID && data.aud !== process.env.GOOGLE_CLIENT_ID) {
-      console.warn('Google token aud mismatch:', data.aud);
-      return null;
-    }
-    return {
-      googleId: data.sub,
-      email: data.email.toLowerCase(),
-      name: data.name || data.email.split('@')[0],
-      avatarUrl: data.picture || null,
-    };
   } catch (err) {
-    console.error('Google token verification error:', err.message);
-    return null;
+    // Continue to userinfo endpoint check
   }
+
+  // 3. Official Google Userinfo verification (OAuth2 Access tokens)
+  try {
+    const uiUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
+    const uiRes = await fetch(uiUrl, {
+      headers: { Authorization: `Bearer ${credential}`, Accept: 'application/json' },
+    });
+    if (uiRes.ok) {
+      const data = await uiRes.json();
+      if (data && data.sub && data.email) {
+        return {
+          googleId: data.sub,
+          email: data.email.toLowerCase(),
+          name: data.name || data.email.split('@')[0],
+          avatarUrl: data.picture || null,
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Google userinfo verification error:', err.message);
+  }
+
+  return null;
 }
 
 function validateRegistration({ name, phone, email, password }) {
