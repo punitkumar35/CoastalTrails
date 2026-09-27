@@ -12,6 +12,7 @@ import { api } from '../services/api';
 import { easeOut } from '../lib/motion';
 import { useLiveRefresh } from '../lib/live';
 import { getSavedOrInitialDates } from '../lib/dates';
+import { useSEO } from '../lib/seo';
 
 interface ExplorePageProps {
   homestays: Homestay[];
@@ -46,6 +47,16 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const listingsRef = useRef<HTMLElement | null>(null);
+
+  useSEO({
+    title:
+      selectedBeach && selectedBeach !== 'all'
+        ? `${selectedBeach.charAt(0).toUpperCase() + selectedBeach.slice(1)} Beach Homestays, Gokarna | Coastal Trails`
+        : 'Coastal Trails — Curated Gokarna Homestays & Beach Cottages',
+    description:
+      'Curated coastal homestays, beach cottages, and cliff trekking guides across Gokarna, Karnataka. Book authentic family-run stays with a 20% advance hold reservation.',
+    canonical: 'https://coastaltrails.in/',
+  });
 
   useEffect(() => {
     if (!isFilterExpanded) return;

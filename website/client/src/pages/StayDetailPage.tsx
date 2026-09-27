@@ -43,6 +43,7 @@ import { Rating } from '../components/ui/Rating';
 import { DateRangePicker } from '../components/ui/DateRangePicker';
 import { cn } from '../lib/cn';
 import { getSavedOrInitialDates } from '../lib/dates';
+import { useSEO } from '../lib/seo';
 
 interface StayDetailPageProps {
   homestay?: Homestay | null;
@@ -117,6 +118,39 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
   const [guests, setGuests] = useState(2);
   const [wishlisted, setWishlisted] = useState(false);
   const [shared, setShared] = useState(false);
+
+  useSEO({
+    title: homestay
+      ? `${homestay.title} — ${homestay.location_display || 'Gokarna'} Homestay | Coastal Trails`
+      : 'Gokarna Beach Homestay Details | Coastal Trails',
+    description: homestay
+      ? `${homestay.description?.slice(0, 150)}... Book with 20% advance hold on Coastal Trails Gokarna.`
+      : 'Explore curated coastal homestays and beach cottages across Gokarna, Karnataka.',
+    canonical: id ? `https://coastaltrails.in/stay/${id}` : undefined,
+    ogImage: homestay?.imageUrls?.[0] || 'https://coastaltrails.in/assets/real/gokarna-expedition.webp',
+    schema: homestay
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'LodgingBusiness',
+          name: homestay.title,
+          description: homestay.description,
+          image: homestay.imageUrls || [],
+          priceRange: `₹${homestay.price_per_night}`,
+          telephone: homestay.host_whatsapp || '+919845123091',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Gokarna',
+            addressRegion: 'Karnataka',
+            addressCountry: 'IN',
+          },
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: 14.5479,
+            longitude: 74.3188,
+          },
+        }
+      : undefined,
+  });
 
   useEffect(() => {
     if (propHomestay) {

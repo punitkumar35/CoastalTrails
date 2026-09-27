@@ -1,2 +1,16 @@
 User-agent: *
 Allow: /
+Allow: /homestays
+Allow: /trails
+Allow: /stay/
+Allow: /assets/
+Allow: /images/
+
+# Prevent crawlers from indexing private administrative & API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /database
+Disallow: /survey
+
+# XML Sitemap
+Sitemap: https://coastaltrails.in/sitemap.xml

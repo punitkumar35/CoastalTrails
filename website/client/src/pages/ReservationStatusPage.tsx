@@ -35,6 +35,7 @@ import { cn } from '../lib/cn';
 import { useLiveRefresh } from '../lib/live';
 import QRCode from 'qrcode';
 import { openRazorpayCheckout } from '../lib/razorpay';
+import { useSEO } from '../lib/seo';
 
 interface ReservationStatusPageProps {
   currentUser: User | null;
@@ -122,6 +123,12 @@ export function ReservationStatusPage({ currentUser, initialRefCode: propRefCode
   const [payResult, setPayResult] = useState<{ kind: 'success' | 'failed'; message?: string } | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
+
+  useSEO({
+    title: 'My Bookings & Reservations | Coastal Trails Gokarna',
+    description: 'Track your active homestay bookings, view payment status, and download travel vouchers.',
+    canonical: 'https://coastaltrails.in/bookings',
+  });
 
   const fetchBookings = async (silent = false) => {
     if (!currentUser) {

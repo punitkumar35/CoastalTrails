@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, Check, Clock, Compass, Gem, Landmark, Mail, Waves } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { useSEO } from '../lib/seo';
 
 type Category = 'beach' | 'culture' | 'gem' | 'activity';
 type Filter = 'all' | Category;
@@ -325,6 +326,36 @@ const CROWD_STYLE: Record<BeachFact['crowd'], string> = {
 };
 
 export const RouteNavigatorPage: React.FC = () => {
+  useSEO({
+    title: 'The Gokarna Journal — 5-Beach Cliff Trek, Heritage Temples & Culture | Coastal Trails',
+    description:
+      'Curated field guide to Gokarna: 5-beach cliff trek (Kudle to Paradise), Mahabaleshwar Atmalinga heritage, Yana caves, Mirjan Fort, and Karavali coastal etiquette.',
+    canonical: 'https://coastaltrails.in/trails',
+    ogType: 'article',
+    ogImage: 'https://coastaltrails.in/assets/real/halfmoon-beach.webp',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: 'The Gokarna Journal — 5-Beach Cliff Trek, Heritage Temples & Culture',
+      description:
+        'A field guide to the Karavali coast — every beach on the circuit, the history and hidden gems the guidebooks skip.',
+      image: 'https://coastaltrails.in/assets/real/halfmoon-beach.webp',
+      author: {
+        '@type': 'Organization',
+        name: 'Coastal Trails Editorial',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Coastal Trails',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://coastaltrails.in/coastal-trails-logo.png',
+        },
+      },
+      mainEntityOfPage: 'https://coastaltrails.in/trails',
+    },
+  });
+
   const [filter, setFilter] = useState<Filter>('all');
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
