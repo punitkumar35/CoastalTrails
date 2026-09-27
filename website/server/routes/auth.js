@@ -46,14 +46,21 @@ async function verifyGoogleToken(credential) {
     };
   }
 
-  // 2. Official Google tokeninfo verification (ID tokens)
-  try {
-    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.sub && data.email) {
-        if (!process.env.GOOGLE_CLIENT_ID || data.aud === process.env.GOOGLE_CLIENT_ID) {
+  // Determine token structure:
+  // - JWT ID Tokens have exactly 3 dot-separated base64url segments (header.payload.sig)
+  // - Google OAuth2 Access Tokens begin with 'ya29.' or are non-JWT strings
+  const isJwt = credential.split('.').length === 3;
+
+  const verifyUserInfo = async () => {
+    try {
+      const uiUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
+      const uiRes = await fetch(uiUrl, {
+        headers: { Authorization: `Bearer ${credential}`, Accept: 'application/json' },
+        signal: AbortSignal.timeout(4000),
+      });
+      if (uiRes.ok) {
+        const data = await uiRes.json();
+        if (data && data.sub && data.email) {
           return {
             googleId: data.sub,
             email: data.email.toLowerCase(),
@@ -62,33 +69,48 @@ async function verifyGoogleToken(credential) {
           };
         }
       }
+    } catch (err) {
+      console.warn('Google userinfo verification error:', err.message);
     }
-  } catch (err) {
-    // Continue to userinfo endpoint check
-  }
+    return null;
+  };
 
-  // 3. Official Google Userinfo verification (OAuth2 Access tokens)
-  try {
-    const uiUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
-    const uiRes = await fetch(uiUrl, {
-      headers: { Authorization: `Bearer ${credential}`, Accept: 'application/json' },
-    });
-    if (uiRes.ok) {
-      const data = await uiRes.json();
-      if (data && data.sub && data.email) {
-        return {
-          googleId: data.sub,
-          email: data.email.toLowerCase(),
-          name: data.name || data.email.split('@')[0],
-          avatarUrl: data.picture || null,
-        };
+  const verifyTokenInfo = async () => {
+    try {
+      const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(4000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.sub && data.email) {
+          if (!process.env.GOOGLE_CLIENT_ID || data.aud === process.env.GOOGLE_CLIENT_ID) {
+            return {
+              googleId: data.sub,
+              email: data.email.toLowerCase(),
+              name: data.name || data.email.split('@')[0],
+              avatarUrl: data.picture || null,
+            };
+          }
+        }
       }
+    } catch (err) {
+      console.warn('Google tokeninfo verification error:', err.message);
     }
-  } catch (err) {
-    console.error('Google userinfo verification error:', err.message);
-  }
+    return null;
+  };
 
-  return null;
+  // Fast direct path based on token format: avoids the 2-4 second penalty of failing tokeninfo on access tokens
+  if (isJwt) {
+    const verified = await verifyTokenInfo();
+    if (verified) return verified;
+    return await verifyUserInfo();
+  } else {
+    const verified = await verifyUserInfo();
+    if (verified) return verified;
+    return await verifyTokenInfo();
+  }
 }
 
 function validateRegistration({ name, phone, email, password }) {

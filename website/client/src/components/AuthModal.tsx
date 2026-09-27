@@ -43,6 +43,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState('');
 
   useEffect(() => {
     setMode(initialMode);
@@ -117,6 +118,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     // 1. Official Google OAuth2 Popup Client
     if (google?.accounts?.oauth2 && clientId) {
       setIsGoogleLoading(true);
+      setGoogleStatus('Connecting to Google…');
       try {
         const tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: clientId,
@@ -124,12 +126,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
           callback: async (tokenResponse: any) => {
             if (tokenResponse.error) {
               setIsGoogleLoading(false);
+              setGoogleStatus('');
               if (tokenResponse.error !== 'popup_closed_by_user') {
                 setError(tokenResponse.error_description || 'Google sign-in could not be completed.');
               }
               return;
             }
             if (tokenResponse.access_token) {
+              setGoogleStatus('Signing you in…');
               try {
                 const user = await api.googleAuth(tokenResponse.access_token);
                 localStorage.setItem('gokarna_traveler_user', JSON.stringify(user));
@@ -139,6 +143,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                 setError(err.message || 'Google sign-in failed. Please try again.');
               } finally {
                 setIsGoogleLoading(false);
+                setGoogleStatus('');
               }
             }
           },
@@ -148,11 +153,13 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
       } catch (err: any) {
         console.warn('initTokenClient error:', err);
         setIsGoogleLoading(false);
+        setGoogleStatus('');
       }
     }
 
     // 2. Fallback / Dev Mode
     setIsGoogleLoading(true);
+    setGoogleStatus('Signing in (dev mode)…');
     const devCredential = 'dev_token:traveler@coastaltrails.in:Coastal Explorer';
     api.googleAuth(devCredential)
       .then((user) => {
@@ -165,6 +172,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
       })
       .finally(() => {
         setIsGoogleLoading(false);
+        setGoogleStatus('');
       });
   };
 
@@ -304,7 +312,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                 )}
 
                 <span className="truncate">
-                  {isGoogleLoading ? 'Connecting to Google…' : 'Continue with Google'}
+                  {googleStatus || (isGoogleLoading ? 'Connecting to Google…' : 'Continue with Google')}
                 </span>
               </button>
 

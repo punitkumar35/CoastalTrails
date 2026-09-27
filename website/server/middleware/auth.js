@@ -14,7 +14,8 @@ export function sessionExpiry() {
 }
 
 export async function startSession(userId) {
-  await run('DELETE FROM sessions WHERE expires_at < NOW()');
+  // Prune expired sessions asynchronously without blocking the user's login response
+  run('DELETE FROM sessions WHERE expires_at < NOW()').catch(() => {});
   const token = createSessionToken();
   await run('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)', [token, userId, sessionExpiry()]);
   return token;
