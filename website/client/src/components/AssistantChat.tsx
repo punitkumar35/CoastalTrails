@@ -134,20 +134,37 @@ export function AssistantChat() {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? 'Close assistant' : 'Open coastal assistant'}
         whileTap={{ scale: 0.92 }}
-        className="fixed bottom-20 right-3 z-30 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-br from-tide to-tide-2 text-white shadow-lg shadow-tide/30 md:bottom-6 md:right-6"
+        className="fixed bottom-20 right-3 z-30 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-line bg-paper p-2 shadow-xl shadow-ink/15 transition-transform hover:scale-105 md:bottom-6 md:right-6"
       >
-        <span className="absolute inset-0 rounded-full bg-tide/40 animate-ping" style={{ animationDuration: '2.4s' }} />
+        <span className="absolute inset-0 rounded-full bg-ember/20 animate-ping" style={{ animationDuration: '2.8s' }} />
         <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={open ? 'x' : 'waves'}
-            initial={{ scale: 0.5, opacity: 0, rotate: -30 }}
-            animate={{ scale: 1, opacity: 1, rotate: 0 }}
-            exit={{ scale: 0.5, opacity: 0, rotate: 30 }}
-            transition={springSoft}
-            className="relative flex"
-          >
-            {open ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Waves className="h-5 w-5 sm:h-6 sm:w-6" />}
-          </motion.span>
+          {open ? (
+            <motion.span
+              key="x"
+              initial={{ scale: 0.5, opacity: 0, rotate: -45 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 0.5, opacity: 0, rotate: 45 }}
+              transition={springSoft}
+              className="relative flex items-center justify-center text-ink"
+            >
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="icon"
+              initial={{ scale: 0.6, opacity: 0, rotate: -15 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 0.6, opacity: 0, rotate: 15 }}
+              transition={springSoft}
+              className="relative flex h-full w-full items-center justify-center"
+            >
+              <img
+                src="/chatbot-icon.png"
+                alt="Coastal Concierge"
+                className="h-full w-full select-none object-contain drop-shadow-xs"
+              />
+            </motion.span>
+          )}
         </AnimatePresence>
       </motion.button>
 
@@ -164,8 +181,8 @@ export function AssistantChat() {
           >
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-tide to-tide-2 text-white">
-                  <Waves className="h-4 w-4" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-paper p-1 shadow-xs">
+                  <img src="/chatbot-icon.png" alt="Tide" className="h-full w-full object-contain" />
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-ink">Tide</p>
@@ -185,8 +202,13 @@ export function AssistantChat() {
             </div>
 
             <div ref={bodyRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-              <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-line bg-paper-2 px-3.5 py-2.5 text-xs leading-relaxed text-ink">
-                {GREETING}
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-paper p-0.5">
+                  <img src="/chatbot-icon.png" alt="Tide" className="h-full w-full object-contain" />
+                </span>
+                <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-line bg-paper-2 px-3.5 py-2.5 text-xs leading-relaxed text-ink">
+                  {GREETING}
+                </div>
               </div>
 
               <AnimatePresence initial={false}>
@@ -196,8 +218,13 @@ export function AssistantChat() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, ease: 'easeOut' }}
-                    className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}
+                    className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start items-start gap-2')}
                   >
+                    {m.role === 'bot' && (
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-paper p-0.5">
+                        <img src="/chatbot-icon.png" alt="Tide" className="h-full w-full object-contain" />
+                      </span>
+                    )}
                     <div
                       className={cn(
                         'max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed',
@@ -216,16 +243,21 @@ export function AssistantChat() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex w-fit items-center gap-1 rounded-2xl rounded-tl-md border border-line bg-paper-2 px-4 py-3"
+                  className="flex items-start gap-2"
                 >
-                  {[0, 1, 2].map((i) => (
-                    <motion.span
-                      key={i}
-                      className="h-1.5 w-1.5 rounded-full bg-tide"
-                      animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
-                      transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
-                    />
-                  ))}
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-paper p-0.5">
+                    <img src="/chatbot-icon.png" alt="Tide" className="h-full w-full object-contain" />
+                  </span>
+                  <div className="flex w-fit items-center gap-1 rounded-2xl rounded-tl-md border border-line bg-paper-2 px-4 py-3">
+                    {[0, 1, 2].map((i) => (
+                      <motion.span
+                        key={i}
+                        className="h-1.5 w-1.5 rounded-full bg-tide"
+                        animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
+                      />
+                    ))}
+                  </div>
                 </motion.div>
               ) : null}
 
