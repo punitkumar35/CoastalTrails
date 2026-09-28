@@ -125,19 +125,27 @@ export function Footer({
                 { Icon: Instagram, label: 'Instagram' },
                 { Icon: Youtube, label: 'YouTube' },
                 { Icon: Twitter, label: 'Twitter' },
-                { Icon: Mail, label: 'Email' },
-              ].map(({ Icon, label }) => (
-                <a
-                  key={label}
-                  href={label === 'Email' ? 'mailto:concierge@coastaltrails.in' : `https://${label.toLowerCase()}.com/coastaltrails`}
-                  target={label === 'Email' ? undefined : '_blank'}
-                  rel="noreferrer"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-elevated text-ink-2 transition-all hover:-translate-y-0.5 hover:border-tide hover:text-tide"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
+                { Icon: Mail, label: 'Email', href: 'mailto:concierge@coastaltrails.in' },
+              ].map(({ Icon, label, href }) =>
+                href ? (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-elevated text-ink-2 transition-all hover:-translate-y-0.5 hover:border-tide hover:text-tide"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <span
+                    key={label}
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-elevated text-ink-3 select-none"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                )
+              )}
             </div>
           </div>
 
