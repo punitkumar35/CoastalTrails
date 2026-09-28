@@ -105,6 +105,7 @@ function RequireAuth({
   children: ReactNode;
 }) {
   const requested = useRef(false);
+  const location = useLocation();
   useEffect(() => {
     // Wait until the saved session has been restored before deciding to prompt
     if (authReady && !user && !requested.current) {
@@ -115,14 +116,21 @@ function RequireAuth({
 
   if (user) return <>{children}</>;
   if (!authReady) return <PageFallback />;
+  const isProfile = location.pathname.startsWith('/profile');
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-line bg-elevated px-8 py-16 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-tide-glow/15 text-tide">
         <Lock className="h-6 w-6" />
       </div>
       <p className="overline mb-2">Members only</p>
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Sign in to view bookings</h1>
-      <p className="mt-2 max-w-sm text-sm text-ink-2">Your reservations, vouchers and holds are visible only after you sign in.</p>
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+        {isProfile ? 'Sign in to access your profile' : 'Sign in to view bookings'}
+      </h1>
+      <p className="mt-2 max-w-sm text-sm text-ink-2">
+        {isProfile
+          ? 'Manage your bookings, saved wishlists, payment history, and account settings.'
+          : 'Your reservations, vouchers and holds are visible only after you sign in.'}
+      </p>
       <Button className="mt-6" onClick={onRequireAuth}>
         Sign in to continue
       </Button>
@@ -491,7 +499,10 @@ export function App() {
           // Continue where the user already was when they deliberately opened
           // the bookings area or started a booking; otherwise land on the homestay page.
           const keepContext =
-            path.startsWith('/bookings') || path.startsWith('/reservation') || path.startsWith('/book/');
+            path.startsWith('/bookings') ||
+            path.startsWith('/reservation') ||
+            path.startsWith('/book/') ||
+            path.startsWith('/profile');
           if (!keepContext) navigate('/homestays');
         }}
       />
