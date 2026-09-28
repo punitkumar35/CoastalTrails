@@ -81,6 +81,16 @@ function PageFallback() {
   );
 }
 
+function GokarnaGuideRedirect() {
+  useEffect(() => {
+    const path = window.location.pathname.endsWith('/')
+      ? window.location.pathname
+      : `${window.location.pathname}/`;
+    window.location.replace(path + window.location.search);
+  }, []);
+  return <PageFallback />;
+}
+
 function RequireAuth({
   user,
   authReady,
@@ -454,6 +464,9 @@ export function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/database" element={<DatabaseStudioPage />} />
             <Route path="/survey" element={<SurveyWorkspacePage />} />
+
+            <Route path="/gokarna" element={<GokarnaGuideRedirect />} />
+            <Route path="/gokarna/*" element={<GokarnaGuideRedirect />} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
