@@ -47,6 +47,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState('');
   const [isCaptchaOpen, setIsCaptchaOpen] = useState(false);
+  const [consecutiveFails, setConsecutiveFails] = useState(0);
+  const [captchaChallenge, setCaptchaChallenge] = useState<{ title: string; subtitle: string } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,26 +57,51 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     setPassword('');
   }, [initialMode, isOpen]);
 
-  const executeAuth = async (_captchaToken: string) => {
+  const executeAuth = async (captchaToken?: string) => {
     setIsLoading(true);
     try {
       const user =
         mode === 'register'
-          ? await api.register({
-              name: name.trim(),
-              phone: normalizePhone(phone.trim()),
-              email: email.trim().toLowerCase(),
-              password,
-            })
-          : await api.login(identifier.trim(), password);
+          ? await api.register(
+              {
+                name: name.trim(),
+                phone: normalizePhone(phone.trim()),
+                email: email.trim().toLowerCase(),
+                password,
+              },
+              captchaToken
+            )
+          : await api.login(identifier.trim(), password, captchaToken);
 
       localStorage.setItem('gokarna_traveler_user', JSON.stringify(user));
       setPassword('');
-      onAuthSuccess(user);
+      setConsecutiveFails(0);
       setIsCaptchaOpen(false);
+      onAuthSuccess(user);
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } catch (err: any) {
+      const newFails = consecutiveFails + 1;
+      setConsecutiveFails(newFails);
+
+      const isRateLimitOrDdos =
+        err?.status === 429 ||
+        err?.requiresCaptcha ||
+        err?.code === 'AUTH_RATE_LIMIT_EXCEEDED' ||
+        err?.code === 'RATE_LIMIT_EXCEEDED' ||
+        newFails >= 3;
+
+      if (isRateLimitOrDdos) {
+        setError(err.message || 'Security verification required due to rate limit or repeated attempts.');
+        setCaptchaChallenge({
+          title: 'DDoS & Rate Limit Guard',
+          subtitle:
+            err.message ||
+            'Multiple attempts or rate limit detected. Slide the puzzle to verify you are human.',
+        });
+        setIsCaptchaOpen(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -116,8 +143,18 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
       }
     }
 
-    // Trigger local coastal jigsaw verification
-    setIsCaptchaOpen(true);
+    // Only challenge with captcha if rate-limited or multiple failed attempts occurred
+    if (consecutiveFails >= 3) {
+      setCaptchaChallenge({
+        title: 'Security Verification',
+        subtitle: 'Multiple failed attempts detected. Complete the coastal puzzle to verify you are human.',
+      });
+      setIsCaptchaOpen(true);
+      return;
+    }
+
+    // Normal flow: execute authentication directly without any captcha friction
+    await executeAuth();
   };
 
   const handleGoogleSignIn = () => {
@@ -506,9 +543,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
       <CaptchaModal
         isOpen={isCaptchaOpen}
         onClose={() => setIsCaptchaOpen(false)}
-        onSuccess={(token) => executeAuth(token)}
-        title={mode === 'register' ? 'Verify Traveler Registration' : 'Verify Traveler Sign-in'}
-        subtitle="Complete the coastal puzzle to proceed"
+        onSuccess={(token) => {
+          try {
+            sessionStorage.setItem('ct_captcha_token', token);
+          } catch {}
+          executeAuth(token);
+        }}
+        title={captchaChallenge?.title || 'Security Verification'}
+        subtitle={captchaChallenge?.subtitle || 'Complete the coastal puzzle to verify you are human and proceed.'}
       />
     </>
   );

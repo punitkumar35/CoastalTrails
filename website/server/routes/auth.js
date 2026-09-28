@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { get, run } from '../db/index.js';
 import { requireAuth, startSession, endSession } from '../middleware/auth.js';
 import { sendSignupWhatsApp } from '../utils/whatsapp.js';
-import { authLimiter } from '../middleware/rateLimiter.js';
+import { authLimiter, isHumanVerified } from '../middleware/rateLimiter.js';
 import { sendPasswordResetEmail } from '../services/mail.js';
 
 const router = express.Router();
@@ -236,6 +236,14 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 });
 
+// POST /api/auth/verify-captcha
+router.post('/verify-captcha', (req, res) => {
+  if (isHumanVerified(req)) {
+    return res.json({ verified: true, message: 'Human verification confirmed.' });
+  }
+  return res.status(400).json({ verified: false, error: 'Invalid or expired captcha token.' });
+});
+
 // POST /api/auth/login
 router.post('/login', authLimiter, async (req, res) => {
   try {
@@ -247,8 +255,21 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     const key = rateLimitKey(req, cleanIdentifier);
-    if (isRateLimited(key)) {
-      return res.status(429).json({ error: 'Too many failed attempts. Please wait 15 minutes and try again.' });
+    const humanVerified = isHumanVerified(req);
+
+    if (humanVerified) {
+      // The user solved the coastal jigsaw puzzle, relieve failed attempts lock!
+      failedAttempts.delete(key);
+    } else {
+      const entry = failedAttempts.get(key);
+      const recentAttempts = entry && Date.now() - entry.start <= RATE_WINDOW_MS ? entry.count : 0;
+      if (recentAttempts >= 3 || isRateLimited(key)) {
+        return res.status(429).json({
+          error: 'Multiple failed attempts detected. Please complete security verification to continue.',
+          code: 'AUTH_RATE_LIMIT_EXCEEDED',
+          requiresCaptcha: true,
+        });
+      }
     }
 
     const user = await get(
@@ -258,13 +279,31 @@ router.post('/login', authLimiter, async (req, res) => {
 
     if (!user || !user.password_hash) {
       recordFailedAttempt(key);
-      return res.status(401).json({ error: 'Invalid mobile number/email or password.' });
+      const entry = failedAttempts.get(key);
+      const count = entry ? entry.count : 1;
+      const requiresCaptcha = count >= 3;
+      return res.status(requiresCaptcha ? 429 : 401).json({
+        error: requiresCaptcha
+          ? 'Multiple failed attempts detected. Please complete security verification to continue.'
+          : 'Invalid mobile number/email or password.',
+        code: requiresCaptcha ? 'AUTH_RATE_LIMIT_EXCEEDED' : 'INVALID_CREDENTIALS',
+        requiresCaptcha,
+      });
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password_hash);
     if (!passwordMatches) {
       recordFailedAttempt(key);
-      return res.status(401).json({ error: 'Invalid mobile number/email or password.' });
+      const entry = failedAttempts.get(key);
+      const count = entry ? entry.count : 1;
+      const requiresCaptcha = count >= 3;
+      return res.status(requiresCaptcha ? 429 : 401).json({
+        error: requiresCaptcha
+          ? 'Multiple failed attempts detected. Please complete security verification to continue.'
+          : 'Invalid mobile number/email or password.',
+        code: requiresCaptcha ? 'AUTH_RATE_LIMIT_EXCEEDED' : 'INVALID_CREDENTIALS',
+        requiresCaptcha,
+      });
     }
 
     failedAttempts.delete(key);

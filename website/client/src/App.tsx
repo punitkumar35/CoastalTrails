@@ -153,8 +153,30 @@ export function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [isDevCaptchaOpen, setIsDevCaptchaOpen] = useState(false);
+  const [ddosChallenge, setDdosChallenge] = useState<{
+    open: boolean;
+    title: string;
+    subtitle: string;
+  }>({
+    open: false,
+    title: 'DDoS & Rate Limit Guard',
+    subtitle: 'Unusual network traffic detected on your connection. Please verify you are human to continue.',
+  });
   const [captchaSuccessMsg, setCaptchaSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleDdosEvent = (e: any) => {
+      const detail = e.detail || {};
+      setDdosChallenge({
+        open: true,
+        title: 'Rate Limit & DDoS Protection',
+        subtitle: detail.error || 'High request rate detected. Complete the puzzle to verify you are human.',
+      });
+    };
+
+    window.addEventListener('site:ddos_challenge', handleDdosEvent);
+    return () => window.removeEventListener('site:ddos_challenge', handleDdosEvent);
+  }, []);
 
   const lastFilters = useRef<{ beach?: string; search?: string; checkIn?: string; checkOut?: string }>({});
 
@@ -262,7 +284,16 @@ export function App() {
       { id: 'home', label: 'Explore homestays', onSelect: () => navigate('/') },
       { id: 'trails', label: 'Trails & Culture', onSelect: () => navigate('/trails') },
       { id: 'bookings', label: 'Track bookings', onSelect: () => navigate('/bookings') },
-      { id: 'captcha', label: '🛡️ Test Coastal Captcha Verification', onSelect: () => setIsDevCaptchaOpen(true) },
+      {
+        id: 'captcha',
+        label: '🛡️ Test Coastal Captcha Verification',
+        onSelect: () =>
+          setDdosChallenge({
+            open: true,
+            title: 'Security Verification Shield',
+            subtitle: 'Testing adaptive DDoS & rate limit verification challenge.',
+          }),
+      },
     ],
     [navigate],
   );
@@ -512,15 +543,18 @@ export function App() {
       </Suspense>
 
       <CaptchaModal
-        isOpen={isDevCaptchaOpen}
-        onClose={() => setIsDevCaptchaOpen(false)}
+        isOpen={ddosChallenge.open}
+        onClose={() => setDdosChallenge((prev) => ({ ...prev, open: false }))}
         onSuccess={(token) => {
-          setIsDevCaptchaOpen(false);
-          setCaptchaSuccessMsg(`Verified human! Security token generated: ${token.slice(0, 24)}...`);
+          try {
+            sessionStorage.setItem('ct_captcha_token', token);
+          } catch {}
+          setDdosChallenge((prev) => ({ ...prev, open: false }));
+          setCaptchaSuccessMsg('Human verified! DDoS & rate limit restrictions lifted.');
           setTimeout(() => setCaptchaSuccessMsg(null), 6000);
         }}
-        title="Coastal Security Sandbox"
-        subtitle="Test interactive jigsaw anti-bot verification locally"
+        title={ddosChallenge.title}
+        subtitle={ddosChallenge.subtitle}
       />
 
       {captchaSuccessMsg && (

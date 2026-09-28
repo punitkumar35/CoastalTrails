@@ -20,12 +20,42 @@ function getAuthToken(): string | null {
   }
 }
 
+function getCaptchaToken(): string | null {
+  try {
+    return sessionStorage.getItem('ct_captcha_token') || null;
+  } catch {
+    return null;
+  }
+}
+
 function authHeaders(): Record<string, string> {
   const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const captcha = getCaptchaToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (captcha) headers['x-captcha-token'] = captcha;
+  return headers;
+}
+
+function handleRateLimitError(res: Response, errData?: any) {
+  if (res.status === 429 || errData?.requiresCaptcha) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('site:ddos_challenge', {
+          detail: {
+            error: errData?.error || 'Rate limit or unusual traffic detected. Security verification required.',
+            code: errData?.code || 'RATE_LIMIT_EXCEEDED',
+            requiresCaptcha: true,
+            retryAfterSeconds: errData?.retryAfterSeconds,
+          },
+        })
+      );
+    }
+  }
 }
 
 function handleAuthError(res: Response, errData?: any) {
+  handleRateLimitError(res, errData);
   if (res.status === 401) {
     try {
       localStorage.removeItem('gokarna_traveler_user');
@@ -42,10 +72,14 @@ function handleAuthError(res: Response, errData?: any) {
 
 async function authRequest(path: string, body: Record<string, unknown>, retry = 1): Promise<User> {
   let res: Response;
+  const captcha = getCaptchaToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (captcha) headers['x-captcha-token'] = captcha;
+
   try {
     res = await fetch(`${API_BASE}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     });
   } catch {
@@ -62,7 +96,13 @@ async function authRequest(path: string, body: Record<string, unknown>, retry = 
       await new Promise((r) => setTimeout(r, 1200));
       return authRequest(path, body, retry - 1);
     }
-    throw new Error(data?.error || 'Something went wrong. Please try again.');
+    handleRateLimitError(res, data);
+    const err: any = new Error(data?.error || 'Something went wrong. Please try again.');
+    err.status = res.status;
+    err.code = data?.code;
+    err.requiresCaptcha = Boolean(data?.requiresCaptcha || res.status === 429);
+    err.retryAfterSeconds = data?.retryAfterSeconds;
+    throw err;
   }
   return {
     id: String(data.id),
@@ -451,12 +491,17 @@ export const api = {
     return out;
   },
 
-  async register(data: { name: string; phone: string; email: string; password: string }): Promise<User> {
-    return authRequest('/auth/register', data);
+  async register(
+    data: { name: string; phone: string; email: string; password: string },
+    captchaToken?: string
+  ): Promise<User> {
+    const payload = captchaToken ? { ...data, captchaToken } : data;
+    return authRequest('/auth/register', payload);
   },
 
-  async login(identifier: string, password: string): Promise<User> {
-    return authRequest('/auth/login', { identifier, password });
+  async login(identifier: string, password: string, captchaToken?: string): Promise<User> {
+    const payload = captchaToken ? { identifier, password, captchaToken } : { identifier, password };
+    return authRequest('/auth/login', payload);
   },
 
   async googleAuth(credential: string): Promise<User> {

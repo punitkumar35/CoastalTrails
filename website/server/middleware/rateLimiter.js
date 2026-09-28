@@ -10,6 +10,17 @@ export function getClientIp(req) {
   return req.ip || req.socket?.remoteAddress || '127.0.0.1';
 }
 
+export function isHumanVerified(req) {
+  const token = req.headers['x-captcha-token'] || req.body?.captchaToken || req.query?.captchaToken;
+  if (!token || typeof token !== 'string') return false;
+  if (!token.startsWith('CT_CAPTCHA_')) return false;
+  const parts = token.split('_');
+  const timestamp = parseInt(parts[2], 10);
+  if (isNaN(timestamp)) return false;
+  // Token valid for 15 minutes
+  return Date.now() - timestamp < 15 * 60 * 1000;
+}
+
 /**
  * General API Limiter: 200 requests per minute per IP across /api/*
  */
@@ -18,14 +29,16 @@ export const generalApiLimiter = rateLimit({
   limit: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => isHumanVerified(req),
   keyGenerator: (req) => getClientIp(req),
   handler: (req, res) => {
     const retrySec = req.rateLimit?.resetTime
       ? Math.max(1, Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000))
       : 60;
     res.status(429).json({
-      error: 'Too many requests. Please slow down and try again shortly.',
+      error: 'Too many requests or unusual traffic detected. Security verification required.',
       code: 'RATE_LIMIT_EXCEEDED',
+      requiresCaptcha: true,
       retryAfterSeconds: retrySec,
     });
   },
@@ -39,14 +52,16 @@ export const authLimiter = rateLimit({
   limit: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => isHumanVerified(req),
   keyGenerator: (req) => getClientIp(req),
   handler: (req, res) => {
     const retrySec = req.rateLimit?.resetTime
       ? Math.max(1, Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000))
       : 900;
     res.status(429).json({
-      error: 'Too many authentication attempts. Please wait before trying again.',
+      error: 'Multiple authentication attempts detected. Please complete human verification to continue.',
       code: 'AUTH_RATE_LIMIT_EXCEEDED',
+      requiresCaptcha: true,
       retryAfterSeconds: retrySec,
     });
   },
@@ -60,14 +75,16 @@ export const bookingLimiter = rateLimit({
   limit: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => isHumanVerified(req),
   keyGenerator: (req) => getClientIp(req),
   handler: (req, res) => {
     const retrySec = req.rateLimit?.resetTime
       ? Math.max(1, Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000))
       : 60;
     res.status(429).json({
-      error: 'Too many booking requests. Please wait a moment before trying again.',
+      error: 'High booking activity detected. Please complete human verification to continue.',
       code: 'BOOKING_RATE_LIMIT_EXCEEDED',
+      requiresCaptcha: true,
       retryAfterSeconds: retrySec,
     });
   },
