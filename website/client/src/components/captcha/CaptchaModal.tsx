@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, RefreshCw, ShieldCheck, X, Waves, AlertTriangle } from 'lucide-react';
+import { Check, RefreshCw, X, AlertTriangle, Info, ArrowRight } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { springSoft } from '../../lib/motion';
+import { ReCaptchaLogo } from './ReCaptchaWidget';
 
 export interface CaptchaModalProps {
   isOpen: boolean;
@@ -12,7 +13,6 @@ export interface CaptchaModalProps {
   subtitle?: string;
 }
 
-// Curated high-res Gokarna coastal photography for the challenge
 // Curated high-res Gokarna coastal photography for the challenge
 const CAPTCHA_IMAGES = [
   {
@@ -33,11 +33,11 @@ const CAPTCHA_IMAGES = [
   },
 ];
 
-const CANVAS_WIDTH = 340;
-const CANVAS_HEIGHT = 190;
+const CANVAS_WIDTH = 336;
+const CANVAS_HEIGHT = 188;
 const PIECE_SIZE = 42;
 const TAB_RADIUS = 7;
-const TOLERANCE = 6; // pixels of leeway
+const TOLERANCE = 7; // pixels of leeway
 
 // Helper to draw an interlocking jigsaw puzzle path
 function drawPuzzlePath(
@@ -74,8 +74,8 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  title = 'Human Verification',
-  subtitle = 'Drag the slider to complete the coastal puzzle.',
+  title = 'Verify you are human',
+  subtitle = 'Drag the slider to fit the puzzle piece into the coastal image.',
 }) => {
   const [imageIndex, setImageIndex] = useState(0);
   const [targetX, setTargetX] = useState(150);
@@ -100,9 +100,7 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
     setIsDragging(false);
 
     // Pick random target position
-    // x: between 120 and 270 (so piece must slide noticeably)
     const randomX = Math.floor(Math.random() * (CANVAS_WIDTH - PIECE_SIZE - 120)) + 110;
-    // y: between 25 and CANVAS_HEIGHT - PIECE_SIZE - 25
     const randomY = Math.floor(Math.random() * (CANVAS_HEIGHT - PIECE_SIZE - 50)) + 25;
 
     setTargetX(randomX);
@@ -127,11 +125,9 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
       pieceCtx.clearRect(0, 0, pieceCanvas.width, pieceCanvas.height);
 
       pieceCtx.save();
-      // Draw puzzle path shifted by offset so it fits on piece canvas
       drawPuzzlePath(pieceCtx, TAB_RADIUS, TAB_RADIUS, PIECE_SIZE, TAB_RADIUS);
       pieceCtx.clip();
 
-      // Draw the section of image that corresponds to the target position
       pieceCtx.drawImage(
         imageSource,
         randomX - TAB_RADIUS,
@@ -145,7 +141,7 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
       );
 
       // Add embossed inner border on the puzzle piece
-      pieceCtx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      pieceCtx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
       pieceCtx.lineWidth = 2;
       pieceCtx.stroke();
       pieceCtx.restore();
@@ -153,9 +149,9 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
       // 3. Draw cutout silhouette on the main canvas
       mainCtx.save();
       drawPuzzlePath(mainCtx, randomX, randomY, PIECE_SIZE, TAB_RADIUS);
-      mainCtx.fillStyle = 'rgba(10, 20, 30, 0.65)';
+      mainCtx.fillStyle = 'rgba(15, 23, 42, 0.65)';
       mainCtx.fill();
-      mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
       mainCtx.lineWidth = 2;
       mainCtx.setLineDash([4, 3]);
       mainCtx.stroke();
@@ -213,6 +209,43 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
     dragTrajectory.current.push({ x: e.clientX, time: Date.now() });
   };
 
+  const evaluateVerification = (currentVal: number) => {
+    const maxSlidable = CANVAS_WIDTH - PIECE_SIZE - 20;
+    const currentPieceX = currentVal * maxSlidable;
+    const diff = Math.abs(currentPieceX - targetX);
+    const duration = Date.now() - (dragStartTime.current || Date.now() - 400);
+
+    setIsVerifying(true);
+
+    const isHumanPace = duration > 180;
+    const isHumanTrajectory = dragTrajectory.current.length > 3 || currentVal > 0.1;
+
+    setTimeout(() => {
+      setIsVerifying(false);
+      if (diff <= TOLERANCE && isHumanPace && isHumanTrajectory) {
+        setStatus('success');
+        const token = `CT_CAPTCHA_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        try {
+          sessionStorage.setItem('ct_captcha_token', token);
+        } catch {}
+        setTimeout(() => {
+          onSuccess(token);
+          onClose();
+        }, 800);
+      } else {
+        setStatus('fail');
+        if (diff > TOLERANCE) {
+          setErrorMessage('Please try again.');
+        } else {
+          setErrorMessage('Verification failed. Slide gently.');
+        }
+        setTimeout(() => {
+          resetChallenge();
+        }, 1100);
+      }
+    }, 280);
+  };
+
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
@@ -222,40 +255,7 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
       /* ignore */
     }
 
-    // Verify placement
-    const maxSlidable = CANVAS_WIDTH - PIECE_SIZE - 20;
-    const currentPieceX = sliderValue * maxSlidable;
-    const diff = Math.abs(currentPieceX - targetX);
-    const duration = Date.now() - dragStartTime.current;
-
-    setIsVerifying(true);
-
-    // Basic heuristic: Humans take > 300ms to drag a slider, bots jump in 0-50ms
-    const isHumanPace = duration > 250;
-    const isHumanTrajectory = dragTrajectory.current.length > 5;
-
-    setTimeout(() => {
-      setIsVerifying(false);
-      if (diff <= TOLERANCE && isHumanPace && isHumanTrajectory) {
-        setStatus('success');
-        // Generate a verified token with signature
-        const token = `CT_CAPTCHA_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        setTimeout(() => {
-          onSuccess(token);
-          onClose();
-        }, 900);
-      } else {
-        setStatus('fail');
-        if (diff > TOLERANCE) {
-          setErrorMessage('Puzzle not aligned. Try again.');
-        } else {
-          setErrorMessage('Unusual behavior detected. Please slide gently.');
-        }
-        setTimeout(() => {
-          resetChallenge();
-        }, 1200);
-      }
-    }, 300);
+    evaluateVerification(sliderValue);
   };
 
   const nextImage = () => {
@@ -275,174 +275,202 @@ export const CaptchaModal: React.FC<CaptchaModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-ink/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
           />
 
-          {/* Modal Container */}
+          {/* Google reCAPTCHA v2 / Enterprise Style Challenge Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={springSoft}
-            className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-3xl border border-line bg-paper p-6 shadow-2xl shadow-ink/25"
+            className="relative z-10 w-full max-w-[368px] overflow-hidden rounded-xl border border-[#c1c1c1] bg-white shadow-2xl dark:border-white/15 dark:bg-[#202124]"
           >
-            {/* Header */}
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-tide">
-                  <ShieldCheck className="h-4 w-4" />
-                  Security Check
+            {/* Signature Google Blue Header */}
+            <div className="relative bg-[#1a73e8] px-5 py-3.5 text-white dark:bg-[#1967d2]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-medium tracking-wide text-white/90">
+                    Security challenge
+                  </p>
+                  <h3 className="mt-0.5 font-sans text-lg font-bold leading-tight tracking-tight text-white">
+                    {title}
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-white/85">
+                    {subtitle}
+                  </p>
                 </div>
-                <h3 className="mt-1 font-display text-xl font-bold text-ink">{title}</h3>
-                <p className="mt-0.5 text-xs text-ink-2">{subtitle}</p>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="rounded-full p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close captcha"
-                className="rounded-full p-1 text-ink-3 transition-colors hover:bg-paper-2 hover:text-ink"
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
 
-            {/* Canvas Playground */}
-            <div className="relative mt-5 overflow-hidden rounded-2xl border border-line bg-ink/5 shadow-inner">
-              <canvas
-                ref={mainCanvasRef}
-                width={CANVAS_WIDTH}
-                height={CANVAS_HEIGHT}
-                className="block h-[190px] w-[340px] max-w-full select-none"
-              />
-
-              {/* Movable Puzzle Piece Canvas */}
-              <div
-                style={{
-                  transform: `translate3d(${pieceLeftPx}px, ${targetY - TAB_RADIUS}px, 0)`,
-                  transition: isDragging ? 'none' : 'transform 0.25s ease-out',
-                }}
-                className={cn(
-                  'pointer-events-none absolute left-0 top-0 drop-shadow-lg',
-                  status === 'success' && 'drop-shadow-[0_0_12px_rgba(40,167,69,0.8)]',
-                )}
-              >
+            {/* Challenge Body */}
+            <div className="p-4">
+              {/* Canvas Playground */}
+              <div className="relative overflow-hidden rounded-lg border border-[#dadce0] bg-[#f8f9fa] shadow-inner dark:border-white/10 dark:bg-black/30">
                 <canvas
-                  ref={pieceCanvasRef}
-                  width={PIECE_SIZE + TAB_RADIUS * 2}
-                  height={PIECE_SIZE + TAB_RADIUS * 2}
-                />
-              </div>
-
-              {/* Image Refresh Button & Location Badge */}
-              <div className="absolute left-3 top-3 rounded-full bg-ink/75 px-2.5 py-0.5 font-mono text-[9px] font-medium text-white backdrop-blur-xs">
-                {CAPTCHA_IMAGES[imageIndex].label}
-              </div>
-
-              <button
-                type="button"
-                onClick={nextImage}
-                aria-label="New coastal image"
-                title="Load another image"
-                className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-ink/75 text-white backdrop-blur-xs transition-transform hover:scale-110 active:rotate-180"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-
-              {/* Verification Success Overlay */}
-              <AnimatePresence>
-                {status === 'success' && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center bg-ok/85 text-white backdrop-blur-xs"
-                  >
-                    <motion.div
-                      initial={{ scale: 0.5, rotate: -30 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={springSoft}
-                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ok shadow-lg"
-                    >
-                      <Check className="h-7 w-7 stroke-[3]" />
-                    </motion.div>
-                    <p className="mt-2 font-display text-sm font-bold tracking-wide">
-                      Verification Complete
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Error Message */}
-            {errorMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-ember"
-              >
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span>{errorMessage}</span>
-              </motion.div>
-            )}
-
-            {/* Slider Track */}
-            <div className="mt-4">
-              <div
-                ref={sliderTrackRef}
-                className={cn(
-                  'relative flex h-12 w-full items-center rounded-2xl border border-line bg-paper-2 px-1 select-none transition-colors',
-                  status === 'fail' && 'border-ember/50 bg-ember/10 animate-shake',
-                  status === 'success' && 'border-ok/50 bg-ok/10',
-                )}
-              >
-                {/* Completed Fill Track */}
-                <div
-                  style={{ width: `${Math.max(sliderValue * 100, 4)}%` }}
-                  className={cn(
-                    'h-10 rounded-xl transition-all',
-                    status === 'success' ? 'bg-ok/30' : 'bg-tide/20',
-                  )}
+                  ref={mainCanvasRef}
+                  width={CANVAS_WIDTH}
+                  height={CANVAS_HEIGHT}
+                  className="block h-[188px] w-[336px] max-w-full select-none"
                 />
 
-                {/* Slider Drag Handle */}
+                {/* Movable Puzzle Piece Canvas */}
                 <div
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerUp}
                   style={{
-                    left: `calc(${sliderValue * 100}% - ${sliderValue * 44}px)`,
+                    transform: `translate3d(${pieceLeftPx}px, ${targetY - TAB_RADIUS}px, 0)`,
+                    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
                   }}
                   className={cn(
-                    'absolute flex h-10 w-11 cursor-grab items-center justify-center rounded-xl bg-tide text-white shadow-md transition-shadow active:cursor-grabbing hover:bg-tide-2',
-                    status === 'success' && 'bg-ok hover:bg-ok',
+                    'pointer-events-none absolute left-0 top-0 drop-shadow-md',
+                    status === 'success' && 'drop-shadow-[0_0_12px_rgba(15,157,88,0.8)]',
                   )}
                 >
-                  {status === 'success' ? (
-                    <Check className="h-5 w-5" />
-                  ) : (
-                    <Waves className="h-4 w-4" />
-                  )}
+                  <canvas
+                    ref={pieceCanvasRef}
+                    width={PIECE_SIZE + TAB_RADIUS * 2}
+                    height={PIECE_SIZE + TAB_RADIUS * 2}
+                  />
                 </div>
 
-                {/* Slider Prompt Text */}
-                {sliderValue === 0 && status === 'idle' && (
-                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-[11px] font-semibold text-ink-3">
-                    Slide to align the puzzle →
-                  </span>
-                )}
+                {/* Coastal Location Badge */}
+                <div className="absolute left-2.5 top-2.5 rounded-sm bg-black/75 px-2 py-0.5 font-sans text-[10px] font-medium text-white backdrop-blur-xs">
+                  {CAPTCHA_IMAGES[imageIndex].label}
+                </div>
+
+                {/* Success Overlay */}
+                <AnimatePresence>
+                  {status === 'success' && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 flex flex-col items-center justify-center bg-[#0f9d58]/90 text-white backdrop-blur-xs"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.5, rotate: -20 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={springSoft}
+                        className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#0f9d58] shadow-lg"
+                      >
+                        <Check className="h-7 w-7 stroke-[3.2]" />
+                      </motion.div>
+                      <p className="mt-2 text-sm font-bold tracking-tight">
+                        Verification Complete
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Error Message */}
+              {errorMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2.5 flex items-center gap-1.5 rounded-md bg-[#d93025]/10 px-2.5 py-1.5 text-[11px] font-medium text-[#d93025]"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{errorMessage}</span>
+                </motion.div>
+              )}
+
+              {/* Slider Track */}
+              <div className="mt-3.5">
+                <div
+                  ref={sliderTrackRef}
+                  className={cn(
+                    'relative flex h-11 w-full items-center rounded-lg border border-[#dadce0] bg-[#f1f3f4] px-1 select-none transition-colors dark:border-white/15 dark:bg-[#303134]',
+                    status === 'fail' && 'border-[#d93025] bg-[#d93025]/10',
+                    status === 'success' && 'border-[#0f9d58] bg-[#0f9d58]/10',
+                  )}
+                >
+                  {/* Filled Progress Track */}
+                  <div
+                    style={{ width: `${Math.max(sliderValue * 100, 3)}%` }}
+                    className={cn(
+                      'h-9 rounded-md transition-all',
+                      status === 'success' ? 'bg-[#0f9d58]/30' : 'bg-[#1a73e8]/25',
+                    )}
+                  />
+
+                  {/* Drag Handle */}
+                  <div
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    style={{
+                      left: `calc(${sliderValue * 100}% - ${sliderValue * 44}px)`,
+                    }}
+                    className={cn(
+                      'absolute flex h-9 w-11 cursor-grab items-center justify-center rounded-md bg-[#1a73e8] text-white shadow-xs transition-shadow active:cursor-grabbing hover:bg-[#1557b0]',
+                      status === 'success' && 'bg-[#0f9d58] hover:bg-[#0f9d58]',
+                    )}
+                  >
+                    {status === 'success' ? (
+                      <Check className="h-5 w-5" />
+                    ) : (
+                      <ArrowRight className="h-4 w-4 stroke-[2.5]" />
+                    )}
+                  </div>
+
+                  {/* Hint Text */}
+                  {sliderValue === 0 && status === 'idle' && (
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] font-medium text-[#70757a] dark:text-white/60">
+                      Slide puzzle piece to right →
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Footer Trust Note */}
-            <div className="mt-4 flex items-center justify-between border-t border-line pt-3 font-mono text-[10px] text-ink-3">
-              <span>Coastal Shield · Anti-Bot</span>
+            {/* Google reCAPTCHA Footer Toolbar */}
+            <div className="flex items-center justify-between border-t border-[#dadce0] bg-[#f8f9fa] px-4 py-2.5 dark:border-white/10 dark:bg-[#1f2023]">
+              {/* Left Action Tools */}
+              <div className="flex items-center gap-3 text-[#5f6368] dark:text-white/70">
+                <button
+                  type="button"
+                  onClick={nextImage}
+                  title="Reload new image"
+                  aria-label="Reload challenge"
+                  className="rounded-full p-1.5 transition-colors hover:bg-black/5 hover:text-[#202124] dark:hover:bg-white/10 dark:hover:text-white"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={resetChallenge}
+                  title="Instructions"
+                  aria-label="Challenge instructions"
+                  className="rounded-full p-1.5 transition-colors hover:bg-black/5 hover:text-[#202124] dark:hover:bg-white/10 dark:hover:text-white"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-1.5 pl-1">
+                  <ReCaptchaLogo className="h-5 w-5" />
+                  <span className="text-[10px] font-semibold text-[#555] dark:text-white/70">reCAPTCHA</span>
+                </div>
+              </div>
+
+              {/* Verify Primary Action Button */}
               <button
                 type="button"
-                onClick={resetChallenge}
-                className="hover:text-ink hover:underline"
+                onClick={() => evaluateVerification(sliderValue)}
+                disabled={isVerifying || status === 'success'}
+                className={cn(
+                  'rounded-md bg-[#1a73e8] px-5 py-2 text-xs font-bold tracking-wider text-white shadow-xs transition-all hover:bg-[#1557b0] active:scale-95 disabled:opacity-50 dark:bg-[#1a73e8]',
+                  status === 'success' && 'bg-[#0f9d58] hover:bg-[#0f9d58]',
+                )}
               >
-                Reset challenge
+                {status === 'success' ? 'VERIFIED' : isVerifying ? 'VERIFYING…' : 'VERIFY'}
               </button>
             </div>
           </motion.div>

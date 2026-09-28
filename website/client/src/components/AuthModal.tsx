@@ -7,6 +7,7 @@ import { api } from '../services/api';
 import { Dialog } from './ui/Dialog';
 import { Button } from './ui/Button';
 import { CaptchaModal } from './captcha/CaptchaModal';
+import { ReCaptchaWidget } from './captcha/ReCaptchaWidget';
 import { cn } from '../lib/cn';
 import { easeOut, springSoft } from '../lib/motion';
 
@@ -48,6 +49,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
   const [googleStatus, setGoogleStatus] = useState('');
   const [isCaptchaOpen, setIsCaptchaOpen] = useState(false);
   const [consecutiveFails, setConsecutiveFails] = useState(0);
+  const [verifiedCaptchaToken, setVerifiedCaptchaToken] = useState<string | null>(null);
   const [captchaChallenge, setCaptchaChallenge] = useState<{ title: string; subtitle: string } | null>(null);
   const navigate = useNavigate();
 
@@ -55,6 +57,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     setMode(initialMode);
     setError('');
     setPassword('');
+    setVerifiedCaptchaToken(null);
   }, [initialMode, isOpen]);
 
   const executeAuth = async (captchaToken?: string) => {
@@ -144,17 +147,17 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     }
 
     // Only challenge with captcha if rate-limited or multiple failed attempts occurred
-    if (consecutiveFails >= 3) {
+    if (consecutiveFails >= 3 && !verifiedCaptchaToken) {
       setCaptchaChallenge({
-        title: 'Security Verification',
-        subtitle: 'Multiple failed attempts detected. Complete the coastal puzzle to verify you are human.',
+        title: 'Verify you are human',
+        subtitle: 'Multiple attempts or rate limit detected. Slide the puzzle piece to complete.',
       });
       setIsCaptchaOpen(true);
       return;
     }
 
-    // Normal flow: execute authentication directly without any captcha friction
-    await executeAuth();
+    // Execute authentication directly with verified captcha token if available
+    await executeAuth(verifiedCaptchaToken || undefined);
   };
 
   const handleGoogleSignIn = () => {
@@ -515,6 +518,26 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                 </motion.div>
               </AnimatePresence>
 
+              {consecutiveFails >= 2 && (
+                <div className="mt-4 flex justify-center">
+                  <ReCaptchaWidget
+                    isVerified={Boolean(verifiedCaptchaToken)}
+                    forceChallenge={consecutiveFails >= 3}
+                    onRequestChallenge={() => {
+                      setCaptchaChallenge({
+                        title: 'Verify you are human',
+                        subtitle: 'Multiple attempts or rate limit detected. Slide the puzzle piece to complete.',
+                      });
+                      setIsCaptchaOpen(true);
+                    }}
+                    onVerify={(token) => {
+                      setVerifiedCaptchaToken(token);
+                      setConsecutiveFails(0);
+                    }}
+                  />
+                </div>
+              )}
+
               <Button type="submit" disabled={isLoading} className="mt-5 w-full py-3.5 text-sm">
                 {isLoading ? (
                   <motion.span
@@ -544,13 +567,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
         isOpen={isCaptchaOpen}
         onClose={() => setIsCaptchaOpen(false)}
         onSuccess={(token) => {
+          setVerifiedCaptchaToken(token);
           try {
             sessionStorage.setItem('ct_captcha_token', token);
           } catch {}
           executeAuth(token);
         }}
-        title={captchaChallenge?.title || 'Security Verification'}
-        subtitle={captchaChallenge?.subtitle || 'Complete the coastal puzzle to verify you are human and proceed.'}
+        title={captchaChallenge?.title || 'Verify you are human'}
+        subtitle={captchaChallenge?.subtitle || 'Complete the coastal puzzle to verify you are human.'}
       />
     </>
   );

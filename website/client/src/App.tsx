@@ -286,12 +286,12 @@ export function App() {
       { id: 'bookings', label: 'Track bookings', onSelect: () => navigate('/bookings') },
       {
         id: 'captcha',
-        label: '🛡️ Test Coastal Captcha Verification',
+        label: '🛡️ Test Modern reCAPTCHA Verification',
         onSelect: () =>
           setDdosChallenge({
             open: true,
-            title: 'Security Verification Shield',
-            subtitle: 'Testing adaptive DDoS & rate limit verification challenge.',
+            title: 'Verify you are human',
+            subtitle: 'Drag the slider to fit the puzzle piece into the coastal image.',
           }),
       },
     ],
