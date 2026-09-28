@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck, User as UserIcon, Waves, X } from 'lucide-react';
 import type { User } from '../types';
@@ -46,6 +47,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState('');
   const [isCaptchaOpen, setIsCaptchaOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setMode(initialMode);
@@ -437,10 +439,13 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                       {mode === 'signin' ? (
                         <button
                           type="button"
-                          onClick={() => setError('Password reset link sent to your registered mobile/email.')}
+                          onClick={() => {
+                            onClose();
+                            navigate('/forgot-password');
+                          }}
                           className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide hover:text-tide-2"
                         >
-                          Forgot?
+                          Forgot password?
                         </button>
                       ) : null}
                     </div>

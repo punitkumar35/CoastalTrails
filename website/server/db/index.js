@@ -169,6 +169,45 @@ async function runMigrations() {
     await pool.query('ALTER TABLE homestays ADD COLUMN instant_booking TINYINT DEFAULT 1');
     console.log('Migration applied: homestays.status + instant_booking columns added.');
   }
+
+  // Customer profile: avatar + date of birth
+  const [profileImageColumns] = await pool.query("SHOW COLUMNS FROM users LIKE 'profile_image'");
+  if (profileImageColumns.length === 0) {
+    await pool.query('ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) NULL');
+    console.log('Migration applied: users.profile_image column added.');
+  }
+
+  const [dobColumns] = await pool.query("SHOW COLUMNS FROM users LIKE 'date_of_birth'");
+  if (dobColumns.length === 0) {
+    await pool.query('ALTER TABLE users ADD COLUMN date_of_birth DATE NULL');
+    console.log('Migration applied: users.date_of_birth column added.');
+  }
+
+  // Saved stays (wishlist) owned by the authenticated customer
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS wishlist (
+      id VARCHAR(64) PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      homestay_id VARCHAR(64) NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_wishlist_user_stay (user_id, homestay_id),
+      CONSTRAINT fk_wishlist_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_wishlist_homestay FOREIGN KEY (homestay_id) REFERENCES homestays(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  // Password reset links: only the SHA-256 hash of the token is stored
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id VARCHAR(64) PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      token_hash CHAR(64) NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL,
+      INDEX idx_password_resets_hash (token_hash),
+      CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 // Create the database if missing, then apply the schema

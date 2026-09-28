@@ -1,4 +1,14 @@
-import { Homestay, Booking, TransitRoute, DatabaseTableInfo, User, Review, ReviewSummary } from '../types';
+import {
+  Homestay,
+  Booking,
+  BookingPayment,
+  TransitRoute,
+  DatabaseTableInfo,
+  User,
+  Review,
+  ReviewSummary,
+  WishlistStay,
+} from '../types';
 
 const API_BASE = '/api';
 
@@ -61,6 +71,9 @@ async function authRequest(path: string, body: Record<string, unknown>, retry = 
     email: data.email || undefined,
     avatar: data.avatar_url || data.avatar || undefined,
     token: data.token,
+    role: data.role,
+    profile_image: data.profile_image || undefined,
+    date_of_birth: data.date_of_birth || undefined,
   };
 }
 
@@ -186,6 +199,36 @@ export const api = {
     return res.json();
   },
 
+  async getBooking(id: string): Promise<Booking> {
+    const res = await fetch(`${API_BASE}/bookings/${id}`, { headers: { ...authHeaders() } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      handleAuthError(res, err);
+      throw new Error(err?.error || 'Could not load this booking.');
+    }
+    return res.json();
+  },
+
+  async getBookingPayments(bookingId: string): Promise<BookingPayment[]> {
+    const res = await fetch(`${API_BASE}/payments/${bookingId}`, { headers: { ...authHeaders() } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      handleAuthError(res, err);
+      throw new Error(err?.error || 'Could not load payment history.');
+    }
+    return res.json();
+  },
+
+  async getMyPayments(): Promise<BookingPayment[]> {
+    const res = await fetch(`${API_BASE}/payments`, { headers: { ...authHeaders() } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      handleAuthError(res, err);
+      throw new Error(err?.error || 'Could not load your payments.');
+    }
+    return res.json();
+  },
+
   // Payments (Razorpay: initiate creates an order, confirm verifies signature)
   async initiatePayment(
     bookingId: string,
@@ -287,6 +330,125 @@ export const api = {
     } catch {
       return null;
     }
+  },
+
+  async getProfile(): Promise<User> {
+    const res = await fetch(`${API_BASE}/auth/profile`, { headers: { ...authHeaders() } });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      handleAuthError(res, data);
+      throw new Error(data?.error || 'Could not load your profile.');
+    }
+    return data;
+  },
+
+  async updateProfile(data: { name: string; date_of_birth?: string | null }): Promise<User> {
+    const res = await fetch(`${API_BASE}/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(data),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) {
+      handleAuthError(res, out);
+      throw new Error(out?.error || 'Could not save your profile.');
+    }
+    return out;
+  },
+
+  async uploadProfilePhoto(file: File): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append('photo', file);
+    const res = await fetch(`${API_BASE}/upload/avatar`, {
+      method: 'POST',
+      headers: { ...authHeaders() },
+      body: form,
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) {
+      handleAuthError(res, out);
+      throw new Error(out?.error || 'Could not upload your photo.');
+    }
+    return out;
+  },
+
+  // Wishlist (signed-in customers)
+  async getWishlist(): Promise<WishlistStay[]> {
+    const res = await fetch(`${API_BASE}/wishlist`, { headers: { ...authHeaders() } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      handleAuthError(res, err);
+      throw new Error(err?.error || 'Could not load your wishlist.');
+    }
+    return res.json();
+  },
+
+  async addToWishlist(homestayId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/wishlist/${homestayId}`, {
+      method: 'POST',
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      handleAuthError(res, err);
+      throw new Error(err?.error || 'Could not save this stay.');
+    }
+  },
+
+  async removeFromWishlist(homestayId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/wishlist/${homestayId}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      handleAuthError(res, err);
+      throw new Error(err?.error || 'Could not remove this stay.');
+    }
+  },
+
+  async changePassword(data: {
+    current_password: string;
+    new_password: string;
+    confirm_password?: string;
+  }): Promise<{ success: boolean; other_sessions_signed_out?: boolean }> {
+    const res = await fetch(`${API_BASE}/auth/password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(data),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) {
+      handleAuthError(res, out);
+      throw new Error(out?.error || 'Could not change your password.');
+    }
+    return out;
+  },
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message?: string }> {
+    const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(out?.error || 'Could not send the reset link.');
+    return out;
+  },
+
+  async resetPassword(data: {
+    token: string;
+    new_password: string;
+    confirm_password?: string;
+  }): Promise<{ success: boolean; message?: string }> {
+    const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(out?.error || 'Could not reset your password.');
+    return out;
   },
 
   async register(data: { name: string; phone: string; email: string; password: string }): Promise<User> {

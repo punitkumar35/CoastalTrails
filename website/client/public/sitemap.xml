@@ -102,4 +102,77 @@
       <image:loc>https://coastaltrails.in/assets/real/gokarna-expedition.webp</image:loc>
     </image:image>
   </url>
+
+  <!-- Gokarna Guide & Travel Journal Pages -->
+  <url>
+    <loc>https://coastaltrails.in/gokarna/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/5-beach-trek/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/beaches/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/tours/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/camping/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/things-to-do/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/travel-guide/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/travel-guide/best-time-to-visit/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/travel-guide/how-to-reach/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/travel-guide/2-day-itinerary/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/travel-guide/3-day-itinerary/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://coastaltrails.in/gokarna/travel-guide/trip-cost/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>

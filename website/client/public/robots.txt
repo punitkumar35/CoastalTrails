@@ -1,15 +1,22 @@
 User-agent: *
 Allow: /
 Allow: /homestays
+Allow: /gokarna/
 Allow: /trails
 Allow: /stay/
 Allow: /assets/
 Allow: /images/
 
-# Prevent crawlers from indexing private administrative & API routes
+# Prevent crawlers from indexing private administrative, user & API routes
 Disallow: /api/
 Disallow: /admin/
+Disallow: /admin
+Disallow: /profile
+Disallow: /book/
+Disallow: /bookings
+Disallow: /reservation/
 Disallow: /database
+Disallow: /db-studio
 Disallow: /survey
 
 # XML Sitemap

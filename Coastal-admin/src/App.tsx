@@ -104,7 +104,11 @@ export default function App() {
       <header className="glass fixed inset-x-0 top-0 z-chrome border-b border-line">
         <div className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-8 lg:px-10">
           <button onClick={() => navigate('/dashboard')} aria-label="Admin home" className="flex shrink-0 items-center">
-            <img src="/coastal-trails-logo.svg" alt="Coastal Trails" className="h-10 w-auto object-contain" />
+            <img
+              src={`${import.meta.env.BASE_URL}coastal-trails-logo.svg`}
+              alt="Coastal Trails"
+              className="h-10 w-auto object-contain"
+            />
           </button>
 
           <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-line bg-paper-2 p-1 md:flex">
@@ -152,9 +156,24 @@ export default function App() {
             ) : null}
           </div>
         </div>
+        <nav className="flex items-center gap-1 overflow-x-auto border-t border-line px-4 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
+          {nav.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => navigate(item.path)}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-micro',
+                location.pathname.startsWith(item.path) ? 'bg-tide text-white' : 'text-ink-2 hover:text-ink',
+              )}
+            >
+              <Icon icon={item.icon} className="h-3.5 w-3.5" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <main className="w-full flex-1 px-4 pb-10 pt-24 sm:px-8 lg:px-10">
+      <main className="w-full flex-1 px-4 pb-10 pt-32 sm:px-8 md:pt-24 lg:px-10">
         <motion.div
           key={location.pathname}
           initial={{ opacity: 0, y: 8 }}

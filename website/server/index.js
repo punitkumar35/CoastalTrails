@@ -16,6 +16,7 @@ import telemetryRouter from './routes/telemetry.js';
 import authRouter from './routes/auth.js';
 import reviewsRouter from './routes/reviews.js';
 import paymentsRouter from './routes/payments.js';
+import wishlistRouter from './routes/wishlist.js';
 
 import { generalApiLimiter } from './middleware/rateLimiter.js';
 
@@ -69,6 +70,7 @@ app.use('/api/telemetry', telemetryRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/wishlist', wishlistRouter);
 app.use('/api', uploadRouter);
 app.use('/api/enclaves', enclavesRouter);
 

@@ -178,14 +178,40 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
 
   useEffect(() => {
     if (!homestay) return;
+    let active = true;
+    const setFromLocal = () => {
+      try {
+        setWishlisted(JSON.parse(localStorage.getItem('coastal_wishlist') || '[]').includes(homestay.id));
+      } catch {
+        setWishlisted(false);
+      }
+    };
+    let token: string | undefined;
     try {
-      setWishlisted(JSON.parse(localStorage.getItem('coastal_wishlist') || '[]').includes(homestay.id));
+      token = JSON.parse(localStorage.getItem('gokarna_traveler_user') || 'null')?.token;
+    } catch {
+      token = undefined;
+    }
+    if (token) {
+      api
+        .getWishlist()
+        .then((list) => {
+          if (active) setWishlisted(list.some((s) => s.id === homestay.id));
+        })
+        .catch(setFromLocal);
+    } else {
+      setFromLocal();
+    }
+    try {
       const search = getSavedOrInitialDates();
       setCheckIn(search.checkIn);
       setCheckOut(search.checkOut);
     } catch {
-      setWishlisted(false);
+      /* dates are optional here */
     }
+    return () => {
+      active = false;
+    };
   }, [homestay]);
 
   const [stayAvailability, setStayAvailability] = useState<Record<string, number>>({});
@@ -429,6 +455,15 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
         localStorage.setItem('coastal_wishlist', JSON.stringify(updated));
       } catch {
         /* storage unavailable */
+      }
+      try {
+        const token = JSON.parse(localStorage.getItem('gokarna_traveler_user') || 'null')?.token;
+        if (token) {
+          if (next) api.addToWishlist(homestay.id).catch(() => {});
+          else api.removeFromWishlist(homestay.id).catch(() => {});
+        }
+      } catch {
+        /* signed-out visitors keep the local wishlist */
       }
       return next;
     });

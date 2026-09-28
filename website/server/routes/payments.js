@@ -19,6 +19,25 @@ function canAccess(req, booking) {
   return booking.user_id === req.user.id || req.user.role === 'admin';
 }
 
+// GET /api/payments - the logged-in traveler's own payment records only
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const rows = await all(
+      `SELECT p.*, b.reference_code, b.homestay_id, b.check_in, b.check_out,
+              h.title AS homestay_title, h.location_display
+       FROM payments p
+       JOIN bookings b ON b.id = p.booking_id
+       LEFT JOIN homestays h ON h.id = b.homestay_id
+       WHERE b.user_id = ?
+       ORDER BY p.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function verifySignature(orderId, paymentId, signature) {
   const expected = crypto
     .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')

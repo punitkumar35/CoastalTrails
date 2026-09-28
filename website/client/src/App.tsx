@@ -26,6 +26,45 @@ const ReservationStatusPage = lazy(() => import('./pages/ReservationStatusPage')
 const DatabaseStudioPage = lazy(() => import('./pages/DatabaseStudioPage').then((m) => ({ default: m.DatabaseStudioPage })));
 const SurveyWorkspacePage = lazy(() => import('./survey/SurveyWorkspacePage').then((m) => ({ default: m.SurveyWorkspacePage })));
 const BookingPage = lazy(() => import('./pages/BookingPage').then((m) => ({ default: m.BookingPage })));
+const ProfileLayout = lazy(() =>
+  import('./components/profile/ProfileLayout').then((m) => ({ default: m.ProfileLayout })),
+);
+const ProfileOverviewPage = lazy(() =>
+  import('./pages/profile/ProfileOverviewPage').then((m) => ({ default: m.ProfileOverviewPage })),
+);
+const ProfileBookingsPage = lazy(() =>
+  import('./pages/profile/ProfileBookingsPage').then((m) => ({ default: m.ProfileBookingsPage })),
+);
+const ProfileBookingDetailPage = lazy(() =>
+  import('./pages/profile/ProfileBookingDetailPage').then((m) => ({ default: m.ProfileBookingDetailPage })),
+);
+const ProfilePaymentsPage = lazy(() =>
+  import('./pages/profile/ProfilePaymentsPage').then((m) => ({ default: m.ProfilePaymentsPage })),
+);
+const ProfileWalletPage = lazy(() =>
+  import('./pages/profile/ProfileWalletPage').then((m) => ({ default: m.ProfileWalletPage })),
+);
+const ProfileWishlistPage = lazy(() =>
+  import('./pages/profile/ProfileWishlistPage').then((m) => ({ default: m.ProfileWishlistPage })),
+);
+const ProfileEditPage = lazy(() =>
+  import('./pages/profile/ProfileEditPage').then((m) => ({ default: m.ProfileEditPage })),
+);
+const ProfileSettingsPage = lazy(() =>
+  import('./pages/profile/ProfileSettingsPage').then((m) => ({ default: m.ProfileSettingsPage })),
+);
+const ProfileSecurityPage = lazy(() =>
+  import('./pages/profile/ProfileSecurityPage').then((m) => ({ default: m.ProfileSecurityPage })),
+);
+const ProfileSupportPage = lazy(() =>
+  import('./pages/profile/ProfileSupportPage').then((m) => ({ default: m.ProfileSupportPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+);
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const CommandPalette = lazy(() => import('./components/ui/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
@@ -187,6 +226,18 @@ export function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname]);
+
+  // ?auth=signin opens the sign-in modal (used by password recovery pages)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('auth') === 'signin') {
+      setAuthMode('signin');
+      setIsAuthOpen(true);
+      params.delete('auth');
+      const qs = params.toString();
+      navigate({ pathname: location.pathname, search: qs ? `?${qs}` : '' }, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
 
   const commandItems = useMemo<CommandItem[]>(
     () => [
@@ -356,6 +407,51 @@ export function App() {
                 </RequireAuth>
               }
             />
+            <Route
+              path="/profile"
+              element={
+                <RequireAuth
+                  user={currentUser}
+                  authReady={authReady}
+                  onRequireAuth={() => {
+                    setAuthMode('signin');
+                    setIsAuthOpen(true);
+                  }}
+                  onExplore={() => navigate('/')}
+                >
+                  <ProfileLayout
+                    currentUser={currentUser}
+                    onUserUpdate={(user) => {
+                      const withToken = user.token ? user : { ...user, token: currentUser?.token };
+                      setCurrentUser(withToken);
+                      try {
+                        localStorage.setItem('gokarna_traveler_user', JSON.stringify(withToken));
+                      } catch {}
+                    }}
+                    onSignOut={() => {
+                      api.logout();
+                      localStorage.removeItem('gokarna_traveler_user');
+                      setCurrentUser(null);
+                      navigate('/');
+                    }}
+                  />
+                </RequireAuth>
+              }
+            >
+              <Route index element={<ProfileOverviewPage />} />
+              <Route path="bookings" element={<ProfileBookingsPage />} />
+              <Route path="bookings/:refCode" element={<ProfileBookingDetailPage />} />
+              <Route path="payments" element={<ProfilePaymentsPage />} />
+              <Route path="wallet" element={<ProfileWalletPage />} />
+              <Route path="wishlist" element={<ProfileWishlistPage />} />
+              <Route path="edit" element={<ProfileEditPage />} />
+              <Route path="security" element={<ProfileSecurityPage />} />
+              <Route path="settings" element={<ProfileSettingsPage />} />
+              <Route path="support" element={<ProfileSupportPage />} />
+            </Route>
+
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/database" element={<DatabaseStudioPage />} />
             <Route path="/survey" element={<SurveyWorkspacePage />} />
 
