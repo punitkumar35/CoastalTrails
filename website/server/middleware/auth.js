@@ -85,29 +85,22 @@ export async function optionalAuth(req, res, next) {
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
     if (!token) return next();
     const session = await get(
-<<<<<<< HEAD
-      `SELECT s.expires_at, u.id, u.name, u.phone, u.email, u.role, u.avatar_url
-=======
-      `SELECT s.expires_at, u.id, u.name, u.phone, u.email, u.role, u.profile_image, u.date_of_birth
->>>>>>> pr-6
+      `SELECT s.expires_at, u.id, u.name, u.phone, u.email, u.role, u.avatar_url, u.profile_image, u.date_of_birth
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
       [token]
     );
     if (session && new Date(String(session.expires_at).replace(' ', 'T')) >= new Date()) {
-<<<<<<< HEAD
-      req.user = { id: session.id, name: session.name, phone: session.phone, email: session.email, role: session.role, avatar_url: session.avatar_url };
-=======
       req.user = {
         id: session.id,
         name: session.name,
         phone: session.phone,
         email: session.email,
         role: session.role,
-        profile_image: session.profile_image,
+        avatar_url: session.avatar_url,
+        profile_image: session.profile_image || session.avatar_url,
         date_of_birth: session.date_of_birth,
       };
->>>>>>> pr-6
       req.authToken = token;
     }
     return next();
