@@ -10,6 +10,7 @@ import {
   passwordStrength,
 } from '../components/ui/PasswordField';
 import { api } from '../services/api';
+import { useSEO } from '../lib/seo';
 
 export function ResetPasswordPage() {
   const [params] = useSearchParams();
@@ -20,6 +21,11 @@ export function ResetPasswordPage() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+
+  useSEO({
+    title: 'Reset Password | Coastal Trails Gokarna',
+    noindex: true,
+  });
 
   const strength = passwordStrength(newPassword);
   const formValid =

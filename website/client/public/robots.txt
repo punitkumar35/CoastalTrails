@@ -7,7 +7,7 @@ Allow: /stay/
 Allow: /assets/
 Allow: /images/
 
-# Prevent crawlers from indexing private administrative, user & API routes
+# Prevent crawlers from indexing private administrative, user, auth & API routes
 Disallow: /api/
 Disallow: /admin/
 Disallow: /admin
@@ -18,6 +18,15 @@ Disallow: /reservation/
 Disallow: /database
 Disallow: /db-studio
 Disallow: /survey
+Disallow: /forgot-password
+Disallow: /reset-password
 
-# XML Sitemap
+# Googlebot-Image dedicated access for image indexing
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /images/
+Allow: /gokarna/assets/
+
+# Canonical Host & XML Sitemap
+Host: https://coastaltrails.in
 Sitemap: https://coastaltrails.in/sitemap.xml

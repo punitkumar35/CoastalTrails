@@ -4,12 +4,18 @@ import { ArrowLeft, CheckCircle2, Mail, Send } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Field, Input } from '../components/ui/Input';
 import { api } from '../services/api';
+import { useSEO } from '../lib/seo';
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+
+  useSEO({
+    title: 'Account Recovery | Coastal Trails Gokarna',
+    noindex: true,
+  });
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

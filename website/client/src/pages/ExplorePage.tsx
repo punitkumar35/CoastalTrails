@@ -47,6 +47,14 @@ export const BEACH_SLUG_MAP: Record<string, {
     metaDesc: 'Off-grid secluded rock cottages and tranquil homestays at Half Moon Beach, Gokarna. Bioluminescence views and peaceful cliff trails.',
     image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/PXL_20260103_091848995.MP_Half_Moon_Beach_Gokarna_Karnatak_01.jpg/1280px-PXL_20260103_091848995.MP_Half_Moon_Beach_Gokarna_Karnatak_01.jpg',
   },
+  'paradise-beach': {
+    beachKey: 'paradise',
+    name: 'Paradise Beach',
+    headline: 'Paradise Beach Eco Cliff Pods & Secluded Stays',
+    description: 'The southern edge of the Gokarna cliff trek — pristine turquoise cove, untouched golden sands, and eco camping beneath the coconut canopy.',
+    metaDesc: 'Stay at secluded Paradise Beach in Gokarna. Rustic eco cliff pods, stargazing camping, and tranquil nature away from all roads.',
+    image: 'https://coastaltrails.in/assets/real/paradise-beach.webp',
+  },
   'main-beach': {
     beachKey: 'mainBeach',
     name: 'Main Beach & Town',
@@ -114,6 +122,23 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
       ? `https://coastaltrails.in/homestays/${beachSlug}`
       : 'https://coastaltrails.in/homestays',
     ogImage: activeCluster?.image || 'https://coastaltrails.in/assets/real/gokarna-expedition.webp',
+    schema: activeCluster
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          name: activeCluster.headline,
+          description: activeCluster.description,
+          url: `https://coastaltrails.in/homestays/${beachSlug}`,
+          itemListElement: (homestays || [])
+            .filter((s) => s.location === activeCluster.beachKey)
+            .map((stay, index) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              name: stay.title,
+              url: `https://coastaltrails.in/stay/${stay.id}`,
+            })),
+        }
+      : undefined,
   });
 
   useEffect(() => {

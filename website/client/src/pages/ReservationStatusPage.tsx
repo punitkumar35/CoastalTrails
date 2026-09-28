@@ -128,6 +128,7 @@ export function ReservationStatusPage({ currentUser, initialRefCode: propRefCode
     title: 'My Bookings & Reservations | Coastal Trails Gokarna',
     description: 'Track your active homestay bookings, view payment status, and download travel vouchers.',
     canonical: 'https://coastaltrails.in/bookings',
+    noindex: true,
   });
 
   const fetchBookings = async (silent = false) => {

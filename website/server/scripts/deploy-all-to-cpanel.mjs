@@ -307,6 +307,12 @@ if ($zip->open($target) === TRUE) {
   await cp.saveFile('public_html', 'sitemap.xml', sitemapContent);
   await cp.saveFile('public_html', 'robots.txt', robotsContent);
 
+  const manifestPath = path.join(distDir, 'site.webmanifest');
+  if (fs.existsSync(manifestPath)) {
+    const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+    await cp.saveFile('public_html', 'site.webmanifest', manifestContent);
+  }
+
   const htaccessContent = `Options -MultiViews
 RewriteEngine On
 RewriteBase /
@@ -316,6 +322,7 @@ DirectoryIndex index.php index.html
   ExpiresActive On
   ExpiresByType text/html "access plus 0 seconds"
   ExpiresByType application/x-httpd-php "access plus 0 seconds"
+  ExpiresByType application/manifest+json "access plus 1 week"
   ExpiresByType application/javascript "access plus 1 year"
   ExpiresByType text/javascript "access plus 1 year"
   ExpiresByType text/css "access plus 1 year"
@@ -372,8 +379,11 @@ RewriteRule ^ index.php [L]
     { name: 'Gokarna Guide Hub', url: 'https://coastaltrails.in/gokarna/' },
     { name: '5-Beach Trek Guide', url: 'https://coastaltrails.in/gokarna/5-beach-trek/' },
     { name: 'Beaches Guide', url: 'https://coastaltrails.in/gokarna/beaches/' },
+    { name: 'Paradise Beach Cluster', url: 'https://coastaltrails.in/homestays/paradise-beach' },
+    { name: 'Stay Details gokarna-1', url: 'https://coastaltrails.in/stay/gokarna-1' },
     { name: 'Sitemap XML', url: 'https://coastaltrails.in/sitemap.xml' },
     { name: 'Robots TXT', url: 'https://coastaltrails.in/robots.txt' },
+    { name: 'Web Manifest', url: 'https://coastaltrails.in/site.webmanifest' },
     { name: 'API /api/homestays', url: 'https://coastaltrails.in/api/homestays' },
   ];
 

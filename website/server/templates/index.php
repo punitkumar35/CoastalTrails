@@ -23,10 +23,24 @@ if (!file_exists($indexPath)) {
 // 1.5. If request is for a static Gokarna guide page, serve it directly
 if (preg_match('#^/gokarna(/.*)?$#', $path)) {
     $cleanPath = rtrim($path, '/');
-    $guideFile = __DIR__ . $cleanPath . '/index.html';
-    if (file_exists($guideFile)) {
-        header('Content-Type: text/html; charset=UTF-8');
-        readfile($guideFile);
+    $targetFile = __DIR__ . $cleanPath;
+    if (is_dir($targetFile)) {
+        $targetFile .= '/index.html';
+    } elseif (!file_exists($targetFile) && file_exists($targetFile . '/index.html')) {
+        $targetFile .= '/index.html';
+    }
+    if (file_exists($targetFile) && !is_dir($targetFile)) {
+        $ext = pathinfo($targetFile, PATHINFO_EXTENSION);
+        if ($ext === 'html') {
+            header('Content-Type: text/html; charset=UTF-8');
+        } elseif ($ext === 'css') {
+            header('Content-Type: text/css');
+        } elseif ($ext === 'js') {
+            header('Content-Type: application/javascript');
+        } elseif (in_array($ext, ['webp', 'jpg', 'jpeg', 'png', 'svg'])) {
+            header('Content-Type: image/' . ($ext === 'svg' ? 'svg+xml' : $ext));
+        }
+        readfile($targetFile);
         exit;
     }
 }
@@ -49,7 +63,7 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
             ]
         );
 
-        $stmt = $pdo->prepare('SELECT id, title, subtitle, location, location_display, price_per_night, rating, reviews_count FROM homestays WHERE id = ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, title, subtitle, location, location_display, price_per_night, rating, reviews_count, description FROM homestays WHERE id = ? LIMIT 1');
         $stmt->execute([$stayId]);
         $stay = $stmt->fetch();
 
@@ -65,7 +79,10 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
             if (mb_strlen($rawDesc) > 160) {
                 $rawDesc = mb_substr($rawDesc, 0, 157) . '...';
             }
-            $descText = htmlspecialchars($rawDesc . ' Book direct with 20% hold reservation at ' . $priceFmt . '/night.', ENT_QUOTES, 'UTF-8');
+            if (empty($rawDesc)) {
+                $rawDesc = 'Curated ' . $loc . ' beach homestay in Gokarna. Book direct with 20% hold reservation at ' . $priceFmt . '/night.';
+            }
+            $descText = htmlspecialchars($rawDesc, ENT_QUOTES, 'UTF-8');
 
             $imageUrl = 'https://coastaltrails.in/assets/real/gokarna-expedition.webp';
             if ($imgRow && !empty($imgRow['image_url'])) {
@@ -109,6 +126,8 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
                 'image' => $imageUrl,
                 'description' => $rawDesc,
                 'priceRange' => $priceFmt,
+                'currenciesAccepted' => 'INR',
+                'paymentAccepted' => 'UPI, Credit Card, Debit Card, Net Banking',
                 'address' => [
                     '@type' => 'PostalAddress',
                     'streetAddress' => $stay['location'],
@@ -116,6 +135,18 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
                     'addressRegion' => 'Karnataka',
                     'postalCode' => '581326',
                     'addressCountry' => 'IN'
+                ],
+                'geo' => [
+                    '@type' => 'GeoCoordinates',
+                    'latitude' => 14.5479,
+                    'longitude' => 74.3188
+                ],
+                'offers' => [
+                    '@type' => 'Offer',
+                    'price' => (string)$stay['price_per_night'],
+                    'priceCurrency' => 'INR',
+                    'availability' => 'https://schema.org/InStock',
+                    'url' => $pageUrl
                 ]
             ];
             if (!empty($stay['rating']) && !empty($stay['reviews_count'])) {
@@ -127,7 +158,18 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
                     'worstRating' => '1'
                 ];
             }
+            $breadcrumbSchema = [
+                '@context' => 'https://schema.org',
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => 'https://coastaltrails.in/'],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => 'Gokarna Homestays', 'item' => 'https://coastaltrails.in/homestays'],
+                    ['@type' => 'ListItem', 'position' => 3, 'name' => $loc, 'item' => 'https://coastaltrails.in/homestays/' . strtolower(str_replace(' ', '-', $loc))],
+                    ['@type' => 'ListItem', 'position' => 4, 'name' => $stay['title'], 'item' => $pageUrl]
+                ]
+            ];
             $schemaJson = "\n    <script type=\"application/ld+json\">\n    " . json_encode($staySchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+            $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
             $html = str_replace('</head>', $schemaJson . '</head>', $html);
         }
     } catch (\Throwable $e) {
@@ -164,6 +206,11 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
             'title' => 'Half Moon Beach Secluded Rock Cottages | Coastal Trails Gokarna',
             'desc' => 'Off-grid secluded rock cottages and tranquil homestays at Half Moon Beach, Gokarna. Bioluminescence views and peaceful cliff trails.',
             'image' => 'https://coastaltrails.in/assets/real/halfmoon-beach.webp',
+        ],
+        'paradise-beach' => [
+            'title' => 'Paradise Beach Eco Cliff Pods & Secluded Stays | Coastal Trails Gokarna',
+            'desc' => 'Stay at secluded Paradise Beach in Gokarna. Rustic eco cliff pods, stargazing camping, and tranquil nature away from all roads.',
+            'image' => 'https://coastaltrails.in/assets/real/paradise-beach.webp',
         ],
         'main-beach' => [
             'title' => 'Main Beach & Temple Town Homestays | Coastal Trails Gokarna',

@@ -1,9 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import { Compass, Home } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useSEO } from '../lib/seo';
 
 export function NotFoundPage() {
   const navigate = useNavigate();
+
+  useSEO({
+    title: '404 - Page Not Found | Coastal Trails Gokarna',
+    description: 'The requested page could not be found on Coastal Trails Gokarna.',
+    noindex: true,
+  });
+
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-line bg-elevated px-8 py-20 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-tide-glow/15 text-tide">

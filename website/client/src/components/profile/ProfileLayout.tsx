@@ -16,6 +16,7 @@ import {
 import { cn } from '../../lib/cn';
 import { api } from '../../services/api';
 import type { User } from '../../types';
+import { useSEO } from '../../lib/seo';
 
 export interface ProfileContextValue {
   profile: User | null;
@@ -51,6 +52,11 @@ export function ProfileLayout({
   onUserUpdate: (user: User) => void;
   onSignOut: () => void;
 }) {
+  useSEO({
+    title: 'My Profile & Bookings | Coastal Trails Gokarna',
+    noindex: true,
+  });
+
   const [profile, setProfile] = useState<User | null>(currentUser);
 
   useEffect(() => {

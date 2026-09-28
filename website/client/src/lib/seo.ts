@@ -7,9 +7,10 @@ interface SEOProps {
   ogType?: 'website' | 'article';
   ogImage?: string;
   schema?: Record<string, any>;
+  noindex?: boolean;
 }
 
-export function useSEO({ title, description, canonical, ogType = 'website', ogImage, schema }: SEOProps) {
+export function useSEO({ title, description, canonical, ogType = 'website', ogImage, schema, noindex }: SEOProps) {
   useEffect(() => {
     // 1. Update Document Title
     const originalTitle = document.title;
@@ -26,19 +27,26 @@ export function useSEO({ title, description, canonical, ogType = 'website', ogIm
       element.setAttribute('content', content);
     };
 
-    // 3. Update Meta Description
+    // 3. Robots meta tag
+    if (noindex) {
+      setMetaTag('name', 'robots', 'noindex, nofollow');
+    } else {
+      setMetaTag('name', 'robots', 'index, follow, max-image-preview:large');
+    }
+
+    // 4. Update Meta Description
     if (description) {
       setMetaTag('name', 'description', description);
       setMetaTag('property', 'og:description', description);
       setMetaTag('name', 'twitter:description', description);
     }
 
-    // 4. Update OpenGraph Title
+    // 5. Update OpenGraph Title
     setMetaTag('property', 'og:title', title);
     setMetaTag('name', 'twitter:title', title);
     setMetaTag('property', 'og:type', ogType);
 
-    // 5. Update Canonical Link
+    // 6. Update Canonical Link
     const finalCanonical = canonical || `https://coastaltrails.in${window.location.pathname}`;
     let linkCanonical = document.querySelector('link[rel="canonical"]');
     if (!linkCanonical) {
@@ -49,13 +57,13 @@ export function useSEO({ title, description, canonical, ogType = 'website', ogIm
     linkCanonical.setAttribute('href', finalCanonical);
     setMetaTag('property', 'og:url', finalCanonical);
 
-    // 6. Update OG Image if specified
+    // 7. Update OG Image if specified
     if (ogImage) {
       setMetaTag('property', 'og:image', ogImage);
       setMetaTag('name', 'twitter:image', ogImage);
     }
 
-    // 7. Inject Route-Specific JSON-LD Schema
+    // 8. Inject Route-Specific JSON-LD Schema
     const scriptId = 'route-specific-schema';
     let scriptTag = document.getElementById(scriptId) as HTMLScriptElement | null;
     if (schema) {
@@ -74,6 +82,7 @@ export function useSEO({ title, description, canonical, ogType = 'website', ogIm
       document.title = originalTitle;
       const dynamicScript = document.getElementById(scriptId);
       if (dynamicScript) dynamicScript.remove();
+      setMetaTag('name', 'robots', 'index, follow, max-image-preview:large');
     };
-  }, [title, description, canonical, ogType, ogImage, schema]);
+  }, [title, description, canonical, ogType, ogImage, schema, noindex]);
 }

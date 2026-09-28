@@ -135,12 +135,14 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
           name: homestay.title,
           description: homestay.description,
           image: homestay.imageUrls || [],
+          url: `https://coastaltrails.in/stay/${id}`,
           priceRange: `₹${homestay.price_per_night}`,
           telephone: homestay.host_whatsapp || '+919845123091',
           address: {
             '@type': 'PostalAddress',
-            addressLocality: 'Gokarna',
+            addressLocality: homestay.location_display || 'Gokarna',
             addressRegion: 'Karnataka',
+            postalCode: '581326',
             addressCountry: 'IN',
           },
           geo: {
@@ -148,6 +150,26 @@ export function StayDetailPage({ homestay: propHomestay, currentUser = null, onB
             latitude: 14.5479,
             longitude: 74.3188,
           },
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: homestay.rating || 4.8,
+            reviewCount: homestay.reviews_count || 12,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          offers: {
+            '@type': 'Offer',
+            price: homestay.price_per_night,
+            priceCurrency: 'INR',
+            availability: 'https://schema.org/InStock',
+            validFrom: '2026-01-01',
+            url: `https://coastaltrails.in/stay/${id}`,
+          },
+          amenityFeature: (homestay.amenities || []).map((amenity: string) => ({
+            '@type': 'LocationFeatureSpecification',
+            name: amenity,
+            value: true,
+          })),
         }
       : undefined,
   });
