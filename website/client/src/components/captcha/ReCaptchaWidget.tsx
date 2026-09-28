@@ -56,18 +56,13 @@ export const ReCaptchaWidget: React.FC<ReCaptchaWidgetProps> = ({
     // Normal client telemetry check: simulate quick bot heuristic evaluation
     setTimeout(() => {
       setChecking(false);
-      if (onRequestChallenge && Math.random() < 0.25) {
-        // Occasionally trigger elevated visual challenge for test realism
-        onRequestChallenge();
-      } else {
-        setLocalVerified(true);
-        const token = `CT_CAPTCHA_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        try {
-          sessionStorage.setItem('ct_captcha_token', token);
-        } catch {}
-        onVerify(token);
-      }
-    }, 600);
+      setLocalVerified(true);
+      const token = `CT_CAPTCHA_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      try {
+        sessionStorage.setItem('ct_captcha_token', token);
+      } catch {}
+      onVerify(token);
+    }, 500);
   };
 
   const verified = isVerified || localVerified;

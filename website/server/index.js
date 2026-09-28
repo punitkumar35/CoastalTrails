@@ -37,7 +37,7 @@ fs.mkdirSync(path.join(uploadsDir, 'reviews'), { recursive: true });
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-captcha-token']
 }));
 
 app.use(

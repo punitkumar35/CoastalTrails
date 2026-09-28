@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { get, run } from '../db/index.js';
 import { requireAuth, startSession, endSession } from '../middleware/auth.js';
 import { sendSignupWhatsApp } from '../utils/whatsapp.js';
-import { authLimiter, isHumanVerified } from '../middleware/rateLimiter.js';
+import { authLimiter, isHumanVerified, getClientIp } from '../middleware/rateLimiter.js';
 import { sendPasswordResetEmail } from '../services/mail.js';
 
 const router = express.Router();
@@ -147,7 +147,8 @@ function validateRegistration({ name, phone, email, password }) {
 }
 
 function rateLimitKey(req, identifier) {
-  return `${req.ip}:${String(identifier || '').toLowerCase()}`;
+  const ip = getClientIp(req);
+  return `${ip}:${String(identifier || '').toLowerCase()}`;
 }
 
 function isRateLimited(key) {
@@ -263,7 +264,7 @@ router.post('/login', authLimiter, async (req, res) => {
     } else {
       const entry = failedAttempts.get(key);
       const recentAttempts = entry && Date.now() - entry.start <= RATE_WINDOW_MS ? entry.count : 0;
-      if (recentAttempts >= 3 || isRateLimited(key)) {
+      if (recentAttempts >= 5 || isRateLimited(key)) {
         return res.status(429).json({
           error: 'Multiple failed attempts detected. Please complete security verification to continue.',
           code: 'AUTH_RATE_LIMIT_EXCEEDED',
@@ -281,7 +282,7 @@ router.post('/login', authLimiter, async (req, res) => {
       recordFailedAttempt(key);
       const entry = failedAttempts.get(key);
       const count = entry ? entry.count : 1;
-      const requiresCaptcha = count >= 3;
+      const requiresCaptcha = count >= 5;
       return res.status(requiresCaptcha ? 429 : 401).json({
         error: requiresCaptcha
           ? 'Multiple failed attempts detected. Please complete security verification to continue.'
@@ -296,7 +297,7 @@ router.post('/login', authLimiter, async (req, res) => {
       recordFailedAttempt(key);
       const entry = failedAttempts.get(key);
       const count = entry ? entry.count : 1;
-      const requiresCaptcha = count >= 3;
+      const requiresCaptcha = count >= 5;
       return res.status(requiresCaptcha ? 429 : 401).json({
         error: requiresCaptcha
           ? 'Multiple failed attempts detected. Please complete security verification to continue.'

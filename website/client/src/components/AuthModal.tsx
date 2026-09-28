@@ -58,6 +58,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     setError('');
     setPassword('');
     setVerifiedCaptchaToken(null);
+    setConsecutiveFails(0);
   }, [initialMode, isOpen]);
 
   const executeAuth = async (captchaToken?: string) => {
@@ -91,7 +92,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
         err?.requiresCaptcha ||
         err?.code === 'AUTH_RATE_LIMIT_EXCEEDED' ||
         err?.code === 'RATE_LIMIT_EXCEEDED' ||
-        newFails >= 3;
+        newFails >= 5;
 
       if (isRateLimitOrDdos) {
         setError(err.message || 'Security verification required due to rate limit or repeated attempts.');
@@ -147,7 +148,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     }
 
     // Only challenge with captcha if rate-limited or multiple failed attempts occurred
-    if (consecutiveFails >= 3 && !verifiedCaptchaToken) {
+    if (consecutiveFails >= 5 && !verifiedCaptchaToken) {
       setCaptchaChallenge({
         title: 'Verify you are human',
         subtitle: 'Multiple attempts or rate limit detected. Slide the puzzle piece to complete.',
@@ -518,11 +519,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
                 </motion.div>
               </AnimatePresence>
 
-              {consecutiveFails >= 2 && (
+              {consecutiveFails >= 5 && (
                 <div className="mt-4 flex justify-center">
                   <ReCaptchaWidget
                     isVerified={Boolean(verifiedCaptchaToken)}
-                    forceChallenge={consecutiveFails >= 3}
+                    forceChallenge={consecutiveFails >= 6}
                     onRequestChallenge={() => {
                       setCaptchaChallenge({
                         title: 'Verify you are human',
