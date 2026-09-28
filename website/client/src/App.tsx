@@ -5,6 +5,7 @@ import { Lock } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
+import { CaptchaModal } from './components/captcha/CaptchaModal';
 import { AssistantChat } from './components/AssistantChat';
 import { Button } from './components/ui/Button';
 import type { CommandItem } from './components/ui/CommandPalette';
@@ -95,6 +96,8 @@ export function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isDevCaptchaOpen, setIsDevCaptchaOpen] = useState(false);
+  const [captchaSuccessMsg, setCaptchaSuccessMsg] = useState<string | null>(null);
 
   const lastFilters = useRef<{ beach?: string; search?: string; checkIn?: string; checkOut?: string }>({});
 
@@ -190,6 +193,7 @@ export function App() {
       { id: 'home', label: 'Explore homestays', onSelect: () => navigate('/') },
       { id: 'trails', label: 'Trails & Culture', onSelect: () => navigate('/trails') },
       { id: 'bookings', label: 'Track bookings', onSelect: () => navigate('/bookings') },
+      { id: 'captcha', label: '🛡️ Test Coastal Captcha Verification', onSelect: () => setIsDevCaptchaOpen(true) },
     ],
     [navigate],
   );
@@ -386,6 +390,24 @@ export function App() {
       <Suspense fallback={null}>
         <CommandPalette open={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} items={commandItems} />
       </Suspense>
+
+      <CaptchaModal
+        isOpen={isDevCaptchaOpen}
+        onClose={() => setIsDevCaptchaOpen(false)}
+        onSuccess={(token) => {
+          setIsDevCaptchaOpen(false);
+          setCaptchaSuccessMsg(`Verified human! Security token generated: ${token.slice(0, 24)}...`);
+          setTimeout(() => setCaptchaSuccessMsg(null), 6000);
+        }}
+        title="Coastal Security Sandbox"
+        subtitle="Test interactive jigsaw anti-bot verification locally"
+      />
+
+      {captchaSuccessMsg && (
+        <div className="fixed bottom-6 left-1/2 z-[120] -translate-x-1/2 rounded-2xl border border-ok/30 bg-ink/95 px-5 py-3 font-mono text-xs text-white shadow-2xl backdrop-blur-md transition-all">
+          <span className="text-emerald-400 font-bold">✓ SUCCESS:</span> {captchaSuccessMsg}
+        </div>
+      )}
 
       <AssistantChat />
     </div>

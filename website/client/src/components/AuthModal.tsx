@@ -5,6 +5,7 @@ import type { User } from '../types';
 import { api } from '../services/api';
 import { Dialog } from './ui/Dialog';
 import { Button } from './ui/Button';
+import { CaptchaModal } from './captcha/CaptchaModal';
 import { cn } from '../lib/cn';
 import { easeOut, springSoft } from '../lib/motion';
 
@@ -44,12 +45,38 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState('');
+  const [isCaptchaOpen, setIsCaptchaOpen] = useState(false);
 
   useEffect(() => {
     setMode(initialMode);
     setError('');
     setPassword('');
   }, [initialMode, isOpen]);
+
+  const executeAuth = async (_captchaToken: string) => {
+    setIsLoading(true);
+    try {
+      const user =
+        mode === 'register'
+          ? await api.register({
+              name: name.trim(),
+              phone: normalizePhone(phone.trim()),
+              email: email.trim().toLowerCase(),
+              password,
+            })
+          : await api.login(identifier.trim(), password);
+
+      localStorage.setItem('gokarna_traveler_user', JSON.stringify(user));
+      setPassword('');
+      onAuthSuccess(user);
+      setIsCaptchaOpen(false);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,27 +114,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
       }
     }
 
-    setIsLoading(true);
-    try {
-      const user =
-        mode === 'register'
-          ? await api.register({
-              name: name.trim(),
-              phone: normalizePhone(phone.trim()),
-              email: email.trim().toLowerCase(),
-              password,
-            })
-          : await api.login(identifier.trim(), password);
-
-      localStorage.setItem('gokarna_traveler_user', JSON.stringify(user));
-      setPassword('');
-      onAuthSuccess(user);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    // Trigger local coastal jigsaw verification
+    setIsCaptchaOpen(true);
   };
 
   const handleGoogleSignIn = () => {
@@ -180,7 +188,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
     'flex items-center rounded-xl border border-line-2 bg-paper-2 transition-all focus-within:border-tide focus-within:ring-2 focus-within:ring-tide/20';
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="glass max-w-3xl max-h-[92dvh] overflow-y-auto p-0">
+    <>
+      <Dialog open={isOpen} onClose={onClose} className="glass max-w-3xl max-h-[92dvh] overflow-y-auto p-0">
       <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr]">
         <div className="relative hidden h-full min-h-[600px] overflow-hidden md:block">
           <img src="/images/hero-raman.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -488,5 +497,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'signi
         </div>
       </div>
     </Dialog>
+
+      <CaptchaModal
+        isOpen={isCaptchaOpen}
+        onClose={() => setIsCaptchaOpen(false)}
+        onSuccess={(token) => executeAuth(token)}
+        title={mode === 'register' ? 'Verify Traveler Registration' : 'Verify Traveler Sign-in'}
+        subtitle="Complete the coastal puzzle to proceed"
+      />
+    </>
   );
 }
