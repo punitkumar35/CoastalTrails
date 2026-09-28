@@ -20,6 +20,17 @@ if (!file_exists($indexPath)) {
     exit;
 }
 
+// 1.5. If request is for a static Gokarna guide page, serve it directly
+if (preg_match('#^/gokarna(/.*)?$#', $path)) {
+    $cleanPath = rtrim($path, '/');
+    $guideFile = __DIR__ . $cleanPath . '/index.html';
+    if (file_exists($guideFile)) {
+        header('Content-Type: text/html; charset=UTF-8');
+        readfile($guideFile);
+        exit;
+    }
+}
+
 $html = file_get_contents($indexPath);
 
 // 2. Check for Stay detail route: /stay/{id}
