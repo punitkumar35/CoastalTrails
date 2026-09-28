@@ -62,6 +62,7 @@ export interface Booking {
   nights?: number;
   whatsapp_link?: string;
   guest_whatsapp_link?: string | null;
+  refund_note?: string;
 }
 
 export interface TransitRoute {
@@ -126,6 +127,48 @@ export interface User {
   email?: string;
   avatar?: string;
   token?: string;
+  role?: string;
+  profile_image?: string;
+  date_of_birth?: string | null;
+  member_since?: string | null;
+  bookings_count?: number;
+  upcoming_count?: number;
+  completed_count?: number;
+}
+
+export interface WishlistStay {
+  wishlist_id: string;
+  saved_at: string;
+  id: string;
+  title: string;
+  subtitle: string;
+  location: Homestay['location'];
+  location_display: string;
+  price_per_night: number;
+  rating: number;
+  reviews_count: number;
+  host_name: string;
+  description: string;
+  availability_listed?: number | boolean;
+}
+
+export interface BookingPayment {
+  id: string;
+  booking_id: string;
+  amount: number;
+  method: string;
+  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  provider: string;
+  provider_ref?: string | null;
+  created_at: string;
+  paid_at?: string | null;
+  refunded_at?: string | null;
+  reference_code?: string;
+  homestay_id?: string;
+  homestay_title?: string;
+  location_display?: string;
+  check_in?: string;
+  check_out?: string;
 }
 
 export interface CustomMapLocation {

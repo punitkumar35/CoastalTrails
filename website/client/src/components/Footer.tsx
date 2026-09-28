@@ -27,20 +27,37 @@ const enclaves: { label: string; location: string }[] = [
   { label: 'Main Beach Heritage', location: 'mainBeach' },
 ];
 
-const planLinks: { label: string; path: string }[] = [
+const planLinks: { label: string; path?: string; href?: string }[] = [
+  { label: 'Gokarna Travel Guide', href: '/gokarna/' },
+  { label: 'Best Beaches in Gokarna', href: '/gokarna/beaches/' },
+  { label: 'Gokarna 5-Beach Trek', href: '/gokarna/5-beach-trek/' },
+  { label: 'Gokarna Camping', href: '/gokarna/camping/' },
+  { label: 'Itineraries & Trip Cost', href: '/gokarna/travel-guide/' },
   { label: 'Trails & Culture', path: '/trails' },
   { label: 'Track Bookings', path: '/bookings' },
-  { label: 'Reservation Desk', path: '/bookings' },
 ];
 
-function FooterLink({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="group relative inline-block w-fit text-xs font-medium text-ink-2 transition-colors hover:text-tide"
-    >
+function FooterLink({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
+  const className =
+    'group relative inline-block w-fit text-xs font-medium text-ink-2 transition-colors hover:text-tide';
+  const inner = (
+    <>
       {label}
       <span className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 bg-tide transition-transform duration-300 group-hover:scale-x-100" />
+    </>
+  );
+
+  if (href) {
+    return (
+      <a href={href} className={className}>
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <button onClick={onClick} className={className}>
+      {inner}
     </button>
   );
 }
@@ -159,11 +176,15 @@ export function Footer({
           </div>
 
           <div className="space-y-3 lg:col-span-2">
-            <h4 className="overline">Plan</h4>
+            <h4 className="overline">Plan &amp; guides</h4>
             <ul className="space-y-2.5">
               {planLinks.map((p) => (
                 <li key={p.label}>
-                  <FooterLink label={p.label} onClick={() => onNavigate(p.path)} />
+                  <FooterLink
+                    label={p.label}
+                    href={p.href}
+                    onClick={() => p.path && onNavigate(p.path)}
+                  />
                 </li>
               ))}
             </ul>
@@ -205,7 +226,7 @@ export function Footer({
             )}
             <div className="flex items-center gap-2 text-[10px] text-ink-3">
               <MapPin className="h-3 w-3 text-ember" />
-              <span className="font-mono">14.042° N · 74.314° E — Gokarna, Karnataka</span>
+              <span className="font-mono">14.55° N · 74.32° E — Gokarna, Karnataka</span>
             </div>
           </div>
         </div>

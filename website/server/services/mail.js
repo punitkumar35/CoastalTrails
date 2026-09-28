@@ -535,5 +535,62 @@ export async function sendAdminNewBookingAlert({ to, booking, stayTitle, locatio
     title: `New Booking - ${booking.reference_code} | Coastal Trails`,
     inner: voucher({ booking, stay, paymentState, statusPill: PILLS.newrequest(), guestName }),
   });
-  return send({ to, subject: `New booking · ${booking.reference_code} — ${guestName}`, html, label: `admin alert for ${booking.reference_code}`, qrText: qrTextFor(booking) });
+  return send({ to, subject: `New booking A� ${booking.reference_code} �?" ${guestName}`, html, label: `admin alert for ${booking.reference_code}`, qrText: qrTextFor(booking) });
+}
+
+export async function sendPasswordResetEmail({ to, name, resetUrl, minutes = 15 }) {
+  const safeName = escapeHtml(String(name || 'traveller').split(' ')[0]);
+  const safeUrl = escapeHtml(resetUrl);
+  const inner = `
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-container" style="max-width:560px;margin:0 auto;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;">
+    <tr>
+      <td style="background:linear-gradient(135deg,#0f3d35 0%,#0b141e 100%);padding:28px 32px;">
+        <img src="cid:wordmark" alt="Coastal Trails" width="168" style="display:block;height:auto;" />
+      </td>
+    </tr>
+    <tr>
+      <td class="mobile-padding" style="padding:34px 32px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#00756f;">Account recovery</p>
+        <h1 style="margin:0 0 14px;font-size:26px;line-height:1.2;font-weight:700;color:#16222e;">Reset your password</h1>
+        <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4c5a68;">
+          Hi ${safeName}, we received a request to reset the password for your Coastal Trails account. Click the button below to choose a new one.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td class="mobile-padding" align="center" style="padding:6px 32px 4px;">
+        <a href="${safeUrl}" style="display:inline-block;background-color:#00756f;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 34px;border-radius:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          Reset Password
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td class="mobile-padding" style="padding:22px 32px 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f6f3ea;border-radius:12px;">
+          <tr>
+            <td style="padding:14px 18px;font-size:13px;line-height:1.65;color:#4c5a68;">
+              This link expires in <strong style="color:#16222e;">${minutes} minutes</strong> and can only be used once.
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0;font-size:12.5px;line-height:1.7;color:#7e8b97;">
+          If the button does not work, copy and paste this link into your browser:<br />
+          <a href="${safeUrl}" style="color:#00756f;word-break:break-all;">${safeUrl}</a>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td class="mobile-padding" style="padding:18px 32px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;border-top:1px solid #edf2f7;">
+        <p style="margin:0;font-size:12.5px;line-height:1.7;color:#7e8b97;">
+          Didn&rsquo;t request this? You can safely ignore this email &mdash; your password will not change until the link above is used.
+        </p>
+      </td>
+    </tr>
+  </table>`;
+  return send({
+    to,
+    subject: 'Reset your Coastal Trails password',
+    html: emailShell({ title: 'Reset your Coastal Trails password', inner }),
+    label: 'password-reset',
+  });
 }

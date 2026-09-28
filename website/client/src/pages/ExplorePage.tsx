@@ -71,14 +71,44 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
     }
   });
 
+  useEffect(() => {
+    let token: string | undefined;
+    try {
+      token = JSON.parse(localStorage.getItem('gokarna_traveler_user') || 'null')?.token;
+    } catch {
+      token = undefined;
+    }
+    if (!token) return;
+    let active = true;
+    api
+      .getWishlist()
+      .then((list) => {
+        if (active) setWishlist(list.map((s) => s.id));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const toggleWishlist = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setWishlist((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const added = next.includes(id);
       try {
         localStorage.setItem('coastal_wishlist', JSON.stringify(next));
       } catch (err) {
         console.error(err);
+      }
+      try {
+        const token = JSON.parse(localStorage.getItem('gokarna_traveler_user') || 'null')?.token;
+        if (token) {
+          if (added) api.addToWishlist(id).catch(() => {});
+          else api.removeFromWishlist(id).catch(() => {});
+        }
+      } catch {
+        /* signed-out visitors keep the local list */
       }
       return next;
     });
