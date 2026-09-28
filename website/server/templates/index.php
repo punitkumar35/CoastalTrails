@@ -136,6 +136,43 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
     $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($trailsDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
     $html = preg_replace('/<meta property="og:image" content=".*?" \/>/', '<meta property="og:image" content="' . $trailsImg . '" />', $html, 1);
     $html = preg_replace('/<meta property="og:image:secure_url" content=".*?" \/>/', '<meta property="og:image:secure_url" content="' . $trailsImg . '" />', $html, 1);
+} else if (preg_match('#^/homestays/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
+    $slug = $matches[1];
+    $clusterMeta = [
+        'kudle-beach' => [
+            'title' => 'Kudle Beach Homestays & Clifftop Wooden Cottages | Coastal Trails Gokarna',
+            'desc' => 'Book curated Kudle Beach homestays and clifftop wooden cottages in Gokarna. Direct cliff path to sand, sunset decks, and 20% hold reservation.',
+            'image' => 'https://coastaltrails.in/assets/real/kudle-beach.webp',
+        ],
+        'om-beach' => [
+            'title' => 'Om Beach Cottages & Seaside Homestays | Coastal Trails Gokarna',
+            'desc' => 'Explore authentic cottages and homestays near Om Beach, Gokarna. Watersports, Namaste Cafe trail, and 20% advance hold booking.',
+            'image' => 'https://coastaltrails.in/assets/real/om-beach.webp',
+        ],
+        'half-moon-beach' => [
+            'title' => 'Half Moon Beach Secluded Rock Cottages | Coastal Trails Gokarna',
+            'desc' => 'Off-grid secluded rock cottages and tranquil homestays at Half Moon Beach, Gokarna. Bioluminescence views and peaceful cliff trails.',
+            'image' => 'https://coastaltrails.in/assets/real/halfmoon-beach.webp',
+        ],
+        'main-beach' => [
+            'title' => 'Main Beach & Temple Town Homestays | Coastal Trails Gokarna',
+            'desc' => 'Curated coastal homestays near Gokarna Main Beach and Mahabaleshwar Temple. 5-min walk to morning darshan and surf schools.',
+            'image' => 'https://upload.wikimedia.org/wikipedia/commons/1/1b/Gokarna_temple_beach.JPG',
+        ],
+    ];
+
+    if (isset($clusterMeta[$slug])) {
+        $meta = $clusterMeta[$slug];
+        $pageUrl = 'https://coastaltrails.in/homestays/' . $slug;
+        $html = preg_replace('/<title>.*?<\/title>/s', '<title>' . htmlspecialchars($meta['title'], ENT_QUOTES, 'UTF-8') . '</title>', $html, 1);
+        $html = preg_replace('/<link rel="canonical" href=".*?" \/>/', '<link rel="canonical" href="' . $pageUrl . '" />', $html, 1);
+        $html = preg_replace('/<meta\s+name="description"\s+content=".*?"\s*\/>/s', '<meta name="description" content="' . htmlspecialchars($meta['desc'], ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+        $html = preg_replace('/<meta property="og:url" content=".*?" \/>/', '<meta property="og:url" content="' . $pageUrl . '" />', $html, 1);
+        $html = preg_replace('/<meta property="og:title" content=".*?" \/>/', '<meta property="og:title" content="' . htmlspecialchars($meta['title'], ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+        $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($meta['desc'], ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+        $html = preg_replace('/<meta property="og:image" content=".*?" \/>/', '<meta property="og:image" content="' . $meta['image'] . '" />', $html, 1);
+        $html = preg_replace('/<meta property="og:image:secure_url" content=".*?" \/>/', '<meta property="og:image:secure_url" content="' . $meta['image'] . '" />', $html, 1);
+    }
 } else if ($path === '/homestays') {
     $staysTitle = 'Curated Gokarna Homestays & Beach Cottages | Coastal Trails';
     $staysDesc = 'Browse curated family-run homestays, clifftop wooden cottages, and beachside rooms across Kudle, Om, and Half Moon Beach. 20% hold reservation.';

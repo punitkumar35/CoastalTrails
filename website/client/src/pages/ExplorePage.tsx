@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Search, Star, MapPin, ShieldCheck, Sparkles, Waves, Compass, HeartHandshake, Sun, Eye, Calendar, ChevronRight, ChevronLeft, Zap, Heart, LayoutGrid, Grid, List, Bookmark, MessageCircle, Wifi, Utensils, Coffee, SlidersHorizontal, Filter, X, ArrowUpDown, Check, Layers } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Homestay } from '../types';
@@ -10,9 +10,52 @@ import { InkUnderline } from '../components/ui/InkUnderline';
 import { TwinkleSparkle } from '../components/ui/Sparkle';
 import { api } from '../services/api';
 import { easeOut } from '../lib/motion';
+import { cn } from '../lib/cn';
 import { useLiveRefresh } from '../lib/live';
 import { getSavedOrInitialDates } from '../lib/dates';
 import { useSEO } from '../lib/seo';
+
+export const BEACH_SLUG_MAP: Record<string, {
+  beachKey: string;
+  name: string;
+  headline: string;
+  description: string;
+  metaDesc: string;
+  image: string;
+}> = {
+  'kudle-beach': {
+    beachKey: 'kudle',
+    name: 'Kudle Beach',
+    headline: 'Kudle Beach Homestays & Clifftop Wooden Cottages',
+    description: 'The sunset specialist — a wide golden crescent backed by palms, morning yoga shalas, and clifftop wooden shacks overlooking the Arabian Sea.',
+    metaDesc: 'Book curated Kudle Beach homestays and clifftop wooden cottages in Gokarna. Direct cliff path to sand, sunset decks, and 20% hold reservation.',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Kudle_Beach%2C_Gokarna.jpg',
+  },
+  'om-beach': {
+    beachKey: 'om',
+    name: 'Om Beach',
+    headline: 'Om Beach Cottages & Seaside Homestays',
+    description: 'Two iconic crescents traced in the sacred ॐ shape — water sports, boat pickups to remote southern coves, and peaceful seaside cottages.',
+    metaDesc: 'Explore authentic cottages and homestays near Om Beach, Gokarna. Watersports, Namaste Cafe trail, and 20% advance hold booking.',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/PXL_20260103_101009613_People_and_Beach_Om_Beach_Gokarna%2C_Karnataka_43.jpg/1280px-PXL_20260103_101009613_People_and_Beach_Om_Beach_Gokarna%2C_Karnataka_43.jpg',
+  },
+  'half-moon-beach': {
+    beachKey: 'halfMoon',
+    name: 'Half Moon Beach',
+    headline: 'Half Moon Beach Secluded Rock Cottages',
+    description: 'Off-grid seclusion reached only by cliff trail or fisherman boat — zero traffic noise, solar power, starlit nights, and private rock access.',
+    metaDesc: 'Off-grid secluded rock cottages and tranquil homestays at Half Moon Beach, Gokarna. Bioluminescence views and peaceful cliff trails.',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/PXL_20260103_091848995.MP_Half_Moon_Beach_Gokarna_Karnatak_01.jpg/1280px-PXL_20260103_091848995.MP_Half_Moon_Beach_Gokarna_Karnatak_01.jpg',
+  },
+  'main-beach': {
+    beachKey: 'mainBeach',
+    name: 'Main Beach & Town',
+    headline: 'Main Beach Terraces & Heritage Temple Homestays',
+    description: 'Where town heritage meets the Arabian Sea — 5-minute walk to Mahabaleshwar Temple darshan, surf schools, and traditional Karavali cuisine.',
+    metaDesc: 'Curated coastal homestays near Gokarna Main Beach and Mahabaleshwar Temple. 5-min walk to morning darshan and surf schools.',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/1/1b/Gokarna_temple_beach.JPG',
+  },
+};
 
 interface ExplorePageProps {
   homestays: Homestay[];
@@ -30,6 +73,8 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
   onFilterChange,
 }) => {
   const navigate = useNavigate();
+  const { beachSlug } = useParams<{ beachSlug?: string }>();
+  const activeCluster = beachSlug && BEACH_SLUG_MAP[beachSlug] ? BEACH_SLUG_MAP[beachSlug] : null;
 
   const handleCardClick = (stay: Homestay) => {
     if (onSelectStay) onSelectStay(stay);
@@ -40,7 +85,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
   const [checkOut, setCheckOut] = useState<string>(() => getSavedOrInitialDates().checkOut);
   const [viewMode, setViewMode] = useState<'auto' | 'grid' | 'list'>('auto');
   const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'price_asc' | 'price_desc' | 'beach'>('recommended');
-  const [selectedBeach, setSelectedBeach] = useState<string>('all');
+  const [selectedBeach, setSelectedBeach] = useState<string>(() => (activeCluster ? activeCluster.beachKey : 'all'));
   const [selectedPriceRange, setSelectedPriceRange] = useState<'all' | 'budget' | 'mid' | 'luxury'>('all');
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [quickFilterSearch, setQuickFilterSearch] = useState('');
@@ -48,14 +93,27 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
   const filterRef = useRef<HTMLDivElement>(null);
   const listingsRef = useRef<HTMLElement | null>(null);
 
+  useEffect(() => {
+    if (activeCluster) {
+      setSelectedBeach(activeCluster.beachKey);
+    } else if (!beachSlug) {
+      setSelectedBeach('all');
+    }
+  }, [beachSlug]);
+
   useSEO({
-    title:
-      selectedBeach && selectedBeach !== 'all'
-        ? `${selectedBeach.charAt(0).toUpperCase() + selectedBeach.slice(1)} Beach Homestays, Gokarna | Coastal Trails`
-        : 'Coastal Trails — Curated Gokarna Homestays & Beach Cottages',
-    description:
-      'Curated coastal homestays, beach cottages, and cliff trekking guides across Gokarna, Karnataka. Book authentic family-run stays with a 20% advance hold reservation.',
-    canonical: 'https://coastaltrails.in/',
+    title: activeCluster
+      ? `${activeCluster.headline} | Coastal Trails Gokarna`
+      : selectedBeach && selectedBeach !== 'all'
+      ? `${selectedBeach.charAt(0).toUpperCase() + selectedBeach.slice(1)} Beach Homestays, Gokarna | Coastal Trails`
+      : 'Coastal Trails — Curated Gokarna Homestays & Beach Cottages',
+    description: activeCluster
+      ? activeCluster.metaDesc
+      : 'Curated coastal homestays, beach cottages, and cliff trekking guides across Gokarna, Karnataka. Book authentic family-run stays with a 20% advance hold reservation.',
+    canonical: activeCluster
+      ? `https://coastaltrails.in/homestays/${beachSlug}`
+      : 'https://coastaltrails.in/homestays',
+    ogImage: activeCluster?.image || 'https://coastaltrails.in/assets/real/gokarna-expedition.webp',
   });
 
   useEffect(() => {
@@ -380,6 +438,54 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
 
       {/* 3. 2026 CURATED SANCTUARIES (Responsive: Mobile Studio Cards & Desktop Bento Grid) */}
       <section ref={listingsRef} className="scroll-mt-24 space-y-6">
+        {activeCluster && (
+          <div className="rounded-2xl border border-line bg-elevated p-6 sm:p-8 shadow-xs">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ember">
+                  <Waves className="h-3.5 w-3.5" /> Shoreline Collection · Gokarna
+                </div>
+                <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+                  {activeCluster.headline}
+                </h1>
+                <p className="mt-2 text-sm leading-relaxed text-ink-2">
+                  {activeCluster.description}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[11px] text-ink-3">
+                  <span>20% Hold Booking</span>
+                  <span>·</span>
+                  <span>Direct Host WhatsApp</span>
+                  <span>·</span>
+                  <span>Zero Convenience Fees</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 lg:max-w-xs lg:justify-end">
+                <Link
+                  to="/homestays"
+                  className="rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink-2 transition-colors hover:border-ink hover:text-ink"
+                >
+                  All Gokarna
+                </Link>
+                {Object.entries(BEACH_SLUG_MAP).map(([slug, data]) => (
+                  <Link
+                    key={slug}
+                    to={`/homestays/${slug}`}
+                    className={cn(
+                      'rounded-full px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors',
+                      slug === beachSlug
+                        ? 'bg-tide text-white shadow-xs'
+                        : 'border border-line bg-paper text-ink-2 hover:border-ink hover:text-ink',
+                    )}
+                  >
+                    {data.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modern 2026 Section Header & Floating Control Bar */}
         <div className="space-y-4 pb-4 border-b border-slate-200/80">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

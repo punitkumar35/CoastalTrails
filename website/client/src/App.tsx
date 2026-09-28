@@ -257,6 +257,18 @@ export function App() {
                 />
               }
             />
+            <Route
+              path="/homestays/:beachSlug"
+              element={
+                <ExplorePage
+                  homestays={homestays}
+                  loading={loading}
+                  onSelectStay={handleSelectStay}
+                  onBookStay={handleBookStay}
+                  onFilterChange={(beach, search, checkIn, checkOut) => fetchStays(beach, search, checkIn, checkOut)}
+                />
+              }
+            />
 
             <Route
               path="/stay/:id/reviews"

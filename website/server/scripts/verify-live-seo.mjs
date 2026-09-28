@@ -41,6 +41,18 @@ async function run() {
 
   console.log('\n--- 5. Testing Facebook Crawler on /stay/gokarna-11 (Main Beach) ---');
   console.log(await testUrl('https://coastaltrails.in/stay/gokarna-11', 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'));
+
+  console.log('\n--- 6. Testing /homestays/kudle-beach ---');
+  console.log(await testUrl('https://coastaltrails.in/homestays/kudle-beach'));
+
+  console.log('\n--- 7. Testing /homestays/om-beach ---');
+  console.log(await testUrl('https://coastaltrails.in/homestays/om-beach'));
+
+  console.log('\n--- 8. Testing /homestays/half-moon-beach ---');
+  console.log(await testUrl('https://coastaltrails.in/homestays/half-moon-beach'));
+
+  console.log('\n--- 9. Testing /homestays/main-beach ---');
+  console.log(await testUrl('https://coastaltrails.in/homestays/main-beach'));
 }
 
 run().catch(console.error);
