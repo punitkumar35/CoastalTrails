@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { ArrowRight, Check, Clock, Compass, Gem, Landmark, Mail, Waves } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Check, Clock, Compass, Gem, Landmark, Mail, Waves, BedDouble } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { useSEO } from '../lib/seo';
 
 type Category = 'beach' | 'culture' | 'gem' | 'activity';
 type Filter = 'all' | Category;
+
+interface FeaturedStay {
+  id: string;
+  name: string;
+  price: string;
+  location: string;
+  perk: string;
+}
 
 interface Article {
   id: string;
@@ -15,6 +24,7 @@ interface Article {
   author: string;
   date: string;
   readMins: number;
+  featuredStay?: FeaturedStay;
 }
 
 interface BeachFact {
@@ -23,6 +33,7 @@ interface BeachFact {
   access: string;
   swim: string;
   crowd: 'Calm' | 'Busy' | 'Wild';
+  stay?: { id: string; label: string };
 }
 
 const CATEGORY_META: Record<Category, { label: string; icon: typeof Waves; text: string }> = {
@@ -43,6 +54,13 @@ const ARTICLES: Article[] = [
     author: 'Devika Nayak',
     date: '16 Feb 2026',
     readMins: 8,
+    featuredStay: {
+      id: 'gokarna-11',
+      name: 'Main Beach Cliff Terraces',
+      price: '₹2,400/night',
+      location: 'Car Street & Temple Bay',
+      perk: 'Heritage stay · 5 min walk to Mahabaleshwar darshan',
+    },
   },
   {
     id: 'town-history',
@@ -109,6 +127,13 @@ const ARTICLES: Article[] = [
     author: 'Devika Nayak',
     date: '3 Jan 2026',
     readMins: 5,
+    featuredStay: {
+      id: 'gokarna-11',
+      name: 'Main Beach Cliff Terraces',
+      price: '₹2,400/night',
+      location: 'Main Beach',
+      perk: 'Sea-facing balcony · Walkable to surf schools',
+    },
   },
   {
     id: 'kudle',
@@ -120,46 +145,74 @@ const ARTICLES: Article[] = [
     author: 'Aarav Bhat',
     date: '12 Jan 2026',
     readMins: 6,
+    featuredStay: {
+      id: 'gokarna-1',
+      name: 'Kudle Clifftop Wooden Cottage',
+      price: '₹2,400/night',
+      location: 'Kudle Beach',
+      perk: 'Private clifftop deck · Sunset front-row view',
+    },
   },
   {
     id: 'om',
     category: 'beach',
     title: 'Om Beach: Two Crescent Moons',
     excerpt:
-      'Two crescents of sand that trace the \u0950 symbol from above. The most set-up beach on the circuit — jet skis (\u20b9500), banana boats (\u20b9300), parasailing (\u20b91,500) and the best phone signal on the coast.',
+      'Two crescents of sand that trace the ॐ symbol from above. The most set-up beach on the circuit — jet skis (₹500), banana boats (₹300), parasailing (₹1,500) and the best phone signal on the coast.',
     image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/PXL_20260103_101009613_People_and_Beach_Om_Beach_Gokarna%2C_Karnataka_43.jpg/1280px-PXL_20260103_101009613_People_and_Beach_Om_Beach_Gokarna%2C_Karnataka_43.jpg',
     author: 'Meera Kamat',
     date: '28 Jan 2026',
     readMins: 5,
+    featuredStay: {
+      id: 'gokarna-1',
+      name: 'Kudle Clifftop Wooden Cottage',
+      price: '₹2,400/night',
+      location: '15 min walk to Om Beach',
+      perk: 'Clifftop sanctuary between Kudle & Om',
+    },
   },
   {
     id: 'halfmoon',
     category: 'beach',
     title: 'Half Moon Beach: The Quiet Crescent',
     excerpt:
-      'A small secluded crescent with no permanent shops and little signal — reached by a 20\u201345 minute cliff walk from Om or a \u20b9150\u2013300 boat ride. Calm water, clean sand, a handful of people on a busy day.',
+      'A small secluded crescent with no permanent shops and little signal — reached by a 20–45 minute cliff walk from Om or a ₹150–300 boat ride. Calm water, clean sand, a handful of people on a busy day.',
     image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/PXL_20260103_091848995.MP_Half_Moon_Beach_Gokarna_Karnatak_01.jpg/1280px-PXL_20260103_091848995.MP_Half_Moon_Beach_Gokarna_Karnatak_01.jpg',
     author: 'Aarav Bhat',
     date: '9 Feb 2026',
     readMins: 7,
+    featuredStay: {
+      id: 'gokarna-3',
+      name: 'Half Moon Secluded Rock Cottage',
+      price: '₹1,900/night',
+      location: 'Half Moon Beach',
+      perk: 'Off-grid seclusion · Direct rock trail to the cove',
+    },
   },
   {
     id: 'paradise',
     category: 'beach',
     title: 'Paradise Beach: The Wild South',
     excerpt:
-      'Also called Full Moon Beach — no road, no signal, tent camps from October to March, and on certain nights the water glows. Reach it by a 30-minute boulder trek from Half Moon or a \u20b9300 boat from Om.',
+      'Also called Full Moon Beach — no road, no signal, tent camps from October to March, and on certain nights the water glows. Reach it by a 30-minute boulder trek from Half Moon or a ₹300 boat from Om.',
     image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PXL_20260103_054657562.MP_Paradise_beach_gokarna_Paradise_Beach_Trail%2C_Gokarna%2C_Karnataka_581326_05.jpg/1280px-PXL_20260103_054657562.MP_Paradise_beach_gokarna_Paradise_Beach_Trail%2C_Gokarna%2C_Karnataka_581326_05.jpg',
     author: 'Rohan Pai',
     date: '14 Mar 2026',
     readMins: 6,
+    featuredStay: {
+      id: 'gokarna-3',
+      name: 'Half Moon Secluded Rock Cottage',
+      price: '₹1,900/night',
+      location: 'Near Paradise Cove',
+      perk: 'Bioluminescence vantage · 15 min trail to Paradise',
+    },
   },
   {
     id: 'nirvana',
     category: 'beach',
     title: 'Nirvana Beach: The Tiny Secret Cove',
     excerpt:
-      'Tucked beyond Paradise, one of Gokarna\u2019s best-kept secrets — reachable only by an extended trek or by boat. Isolated swimming, meditation and sunsets with no one around.',
+      'Tucked beyond Paradise, one of Gokarna’s best-kept secrets — reachable only by an extended trek or by boat. Isolated swimming, meditation and sunsets with no one around.',
     image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/PXL_20260103_054657562.MP_Paradise_beach_gokarna_Paradise_Beach_Trail%2C_Gokarna%2C_Karnataka_581326_15.jpg/1280px-PXL_20260103_054657562.MP_Paradise_beach_gokarna_Paradise_Beach_Trail%2C_Gokarna%2C_Karnataka_581326_15.jpg',
     author: 'Rohan Pai',
     date: '25 Apr 2026',
@@ -179,7 +232,7 @@ const ARTICLES: Article[] = [
   {
     id: 'mirjan-fort',
     category: 'gem',
-    title: 'Mirjan Fort: The Pepper Queen\u2019s Castle',
+    title: 'Mirjan Fort: The Pepper Queen’s Castle',
     excerpt:
       'A 16th-century laterite fort built by Rani Chennabhairadevi, hidden in the areca groves just 21 km from Gokarna off NH 66 — moats, ramparts and almost no visitors.',
     image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/MIRJAN_FORT_06.jpg/1280px-MIRJAN_FORT_06.jpg',
@@ -203,7 +256,7 @@ const ARTICLES: Article[] = [
     category: 'gem',
     title: 'Vibhooti Falls: A Monsoon Secret',
     excerpt:
-      'A forest trail near Yana ends at a cold, limestone-blue pool below the falls — the locals\u2019 favourite swim between June and October, when the Western Ghats are loud with water.',
+      'A forest trail near Yana ends at a cold, limestone-blue pool below the falls — the locals’ favourite swim between June and October, when the Western Ghats are loud with water.',
     image: 'https://upload.wikimedia.org/wikipedia/commons/2/2d/Chandika_River_at_Yana.jpg',
     author: 'Meera Kamat',
     date: '22 Jul 2026',
@@ -219,13 +272,20 @@ const ARTICLES: Article[] = [
     author: 'Aarav Bhat',
     date: '13 Feb 2026',
     readMins: 5,
+    featuredStay: {
+      id: 'gokarna-1',
+      name: 'Kudle Clifftop Wooden Cottage',
+      price: '₹2,400/night',
+      location: 'Kudle Clifftop',
+      perk: 'Steps from secret cave access headland',
+    },
   },
   {
     id: 'kayak',
     category: 'activity',
     title: 'Kayaking the Aghanashini Mangroves',
     excerpt:
-      'The Aghanashini is one of India\u2019s last major undammed rivers. Trips run from Tadri Harbour through its mangrove backwaters — certified life jackets, beginner-friendly, calmest at dawn and late afternoon.',
+      'The Aghanashini is one of India’s last major undammed rivers. Trips run from Tadri Harbour through its mangrove backwaters — certified life jackets, beginner-friendly, calmest at dawn and late afternoon.',
     image: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/River_Aghanashini.jpg',
     author: 'Rohan Pai',
     date: '24 Feb 2026',
@@ -236,11 +296,18 @@ const ARTICLES: Article[] = [
     category: 'activity',
     title: 'The Gokarna Beach Trek, Step by Step',
     excerpt:
-      'Main \u2192 Kudle \u2192 Om \u2192 Half Moon \u2192 Paradise: roughly 6\u20138 km and 3\u20136 hours of clifftops, forest and coves. Easy-to-moderate, best October\u2013March, start by 8 AM, carry 2 litres of water.',
+      'Main → Kudle → Om → Half Moon → Paradise: roughly 6–8 km and 3–6 hours of clifftops, forest and coves. Easy-to-moderate, best October–March, start by 8 AM, carry 2 litres of water.',
     image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/PXL_20260103_054657562.MP_Paradise_beach_gokarna_Paradise_Beach_Trail%2C_Gokarna%2C_Karnataka_581326_01.jpg/1280px-PXL_20260103_054657562.MP_Paradise_beach_gokarna_Paradise_Beach_Trail%2C_Gokarna%2C_Karnataka_581326_01.jpg',
     author: 'Rohan Pai',
     date: '8 Mar 2026',
     readMins: 9,
+    featuredStay: {
+      id: 'gokarna-1',
+      name: 'Kudle Clifftop Wooden Cottage',
+      price: '₹2,400/night',
+      location: 'Kudle Beach',
+      perk: 'Official 5-beach trek starting point',
+    },
   },
   {
     id: 'dolphin',
@@ -300,11 +367,11 @@ const ARTICLES: Article[] = [
 ];
 
 const BEACH_INDEX: BeachFact[] = [
-  { name: 'Main Beach', vibe: 'Pilgrims & surf schools', access: 'Road · in town', swim: 'Strong currents — care', crowd: 'Busy' },
-  { name: 'Kudle Beach', vibe: 'Yoga, shacks & sunsets', access: 'Road or 20 min walk', swim: 'Generally safe by day', crowd: 'Busy' },
-  { name: 'Om Beach', vibe: 'Water sports & caf\u00e9s', access: 'Road · 3 km from town', swim: 'Generally safe by day', crowd: 'Busy' },
-  { name: 'Half Moon', vibe: 'Secluded crescent', access: 'Trek or boat \u20b9150\u2013300', swim: 'No lifeguards', crowd: 'Calm' },
-  { name: 'Paradise', vibe: 'Wild camping cove', access: 'Trek or boat \u20b9300', swim: 'No lifeguards', crowd: 'Calm' },
+  { name: 'Main Beach', vibe: 'Pilgrims & surf schools', access: 'Road · in town', swim: 'Strong currents — care', crowd: 'Busy', stay: { id: 'gokarna-11', label: 'Main Beach Terraces' } },
+  { name: 'Kudle Beach', vibe: 'Yoga, shacks & sunsets', access: 'Road or 20 min walk', swim: 'Generally safe by day', crowd: 'Busy', stay: { id: 'gokarna-1', label: 'Kudle Clifftop Cottage' } },
+  { name: 'Om Beach', vibe: 'Water sports & cafés', access: 'Road · 3 km from town', swim: 'Generally safe by day', crowd: 'Busy', stay: { id: 'gokarna-1', label: 'Kudle Clifftop (15 min)' } },
+  { name: 'Half Moon', vibe: 'Secluded crescent', access: 'Trek or boat ₹150–300', swim: 'No lifeguards', crowd: 'Calm', stay: { id: 'gokarna-3', label: 'Half Moon Rock Cottage' } },
+  { name: 'Paradise', vibe: 'Wild camping cove', access: 'Trek or boat ₹300', swim: 'No lifeguards', crowd: 'Calm', stay: { id: 'gokarna-3', label: 'Half Moon Rock Cottage' } },
   { name: 'Nirvana', vibe: 'Tiny secret cove', access: 'Long trek or boat', swim: 'Unpatrolled', crowd: 'Wild' },
   { name: 'Belekan', vibe: 'Quiet northern end', access: '5 km coastal road', swim: 'Unpatrolled', crowd: 'Wild' },
 ];
@@ -422,6 +489,28 @@ export const RouteNavigatorPage: React.FC = () => {
             <p className="mt-5 text-sm leading-relaxed text-ink-2 first-letter:float-left first-letter:mr-2.5 first-letter:font-display first-letter:text-6xl first-letter:font-bold first-letter:leading-[0.8] first-letter:text-ember">
               {featured.excerpt}
             </p>
+            {featured.featuredStay && (
+              <div className="mt-6 border-l-2 border-ember bg-paper-2/70 p-4 transition-colors hover:bg-paper-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-ember">
+                    <BedDouble className="h-3.5 w-3.5" /> Recommended Heritage Basecamp
+                  </span>
+                  <span className="font-mono text-[11px] font-bold text-ink">{featured.featuredStay.price}</span>
+                </div>
+                <div className="mt-1 font-display text-base font-bold text-ink">
+                  {featured.featuredStay.name}
+                </div>
+                <div className="mt-0.5 text-xs text-ink-2">
+                  {featured.featuredStay.location} · {featured.featuredStay.perk}
+                </div>
+                <Link
+                  to={`/stay/${featured.featuredStay.id}`}
+                  className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-tide hover:underline"
+                >
+                  Reserve Stay with 20% hold <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            )}
             <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-4 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-3">
               <span className="text-ink">{featured.author}</span>
               <span>·</span>
@@ -484,6 +573,28 @@ export const RouteNavigatorPage: React.FC = () => {
                 {article.title}
               </h3>
               <p className="mt-2.5 flex-1 text-[13px] leading-relaxed text-ink-2 line-clamp-3">{article.excerpt}</p>
+              {article.featuredStay && (
+                <div className="mt-4 border-l-2 border-ember bg-paper-2/70 p-3 transition-colors hover:bg-paper-2">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 font-mono text-[9px] font-bold uppercase tracking-wider text-ember">
+                      <BedDouble className="h-2.5 w-2.5" /> Stay Nearby
+                    </span>
+                    <span className="font-mono text-[10px] font-bold text-ink">{article.featuredStay.price}</span>
+                  </div>
+                  <div className="mt-1 font-display text-[13px] font-bold leading-tight text-ink">
+                    {article.featuredStay.name}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-ink-3 line-clamp-1">
+                    {article.featuredStay.perk}
+                  </div>
+                  <Link
+                    to={`/stay/${article.featuredStay.id}`}
+                    className="mt-2 inline-flex items-center gap-1 font-mono text-[9px] font-bold uppercase tracking-widest text-tide hover:underline"
+                  >
+                    View Cottage (20% hold) <ArrowRight className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              )}
               <div className="mt-5 flex items-center gap-x-2.5 gap-y-1 border-t border-line pt-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-3">
                 <span className="truncate text-ink">{article.author}</span>
                 <span className="hidden sm:inline">—</span>
@@ -524,23 +635,37 @@ export const RouteNavigatorPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="hidden grid-cols-[1.3fr_1.6fr_1.2fr_1fr_auto] gap-4 border-b border-line pb-2 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3 md:grid">
+          <div className="hidden grid-cols-[1.2fr_1.5fr_1.1fr_1fr_1.4fr_auto] gap-4 border-b border-line pb-2 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3 md:grid">
             <span>Beach</span>
             <span>Character</span>
             <span>Access</span>
             <span>Swim</span>
+            <span>Recommended Stay</span>
             <span className="text-right">Crowd</span>
           </div>
 
           {BEACH_INDEX.map((beach) => (
             <div
               key={beach.name}
-              className="grid grid-cols-1 gap-1.5 border-b border-line py-4 transition-colors hover:bg-paper-2/60 md:grid-cols-[1.3fr_1.6fr_1.2fr_1fr_auto] md:items-center md:gap-4"
+              className="grid grid-cols-1 gap-2 border-b border-line py-4 transition-colors hover:bg-paper-2/60 md:grid-cols-[1.2fr_1.5fr_1.1fr_1fr_1.4fr_auto] md:items-center md:gap-4"
             >
               <span className="font-display text-lg font-bold leading-tight text-ink">{beach.name}</span>
               <span className="text-[13px] text-ink-2">{beach.vibe}</span>
               <span className="font-mono text-[11px] font-semibold text-ink-3">{beach.access}</span>
               <span className="font-mono text-[11px] font-semibold text-ink-3">{beach.swim}</span>
+              <div>
+                {beach.stay ? (
+                  <Link
+                    to={`/stay/${beach.stay.id}`}
+                    className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold text-ember transition-colors hover:text-tide hover:underline"
+                  >
+                    <BedDouble className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{beach.stay.label}</span>
+                  </Link>
+                ) : (
+                  <span className="font-mono text-[10px] text-ink-3">—</span>
+                )}
+              </div>
               <span className={cn('font-mono text-[10px] font-bold uppercase tracking-widest md:text-right', CROWD_STYLE[beach.crowd])}>
                 {beach.crowd}
               </span>
