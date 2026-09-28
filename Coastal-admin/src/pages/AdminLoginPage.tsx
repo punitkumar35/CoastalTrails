@@ -35,7 +35,7 @@ export function AdminLoginPage({ onLogin }: { onLogin: (a: { name: string; phone
 
   return (
     <div className="relative flex min-h-[82vh] items-center justify-center overflow-hidden rounded-3xl border border-line-2 p-6 sm:p-10">
-      <img src="/owner-hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <img src={`${import.meta.env.BASE_URL}owner-hero.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/55 to-ink/35" />
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 animate-blob bg-tide-glow/15 blur-3xl" />
 
@@ -47,7 +47,11 @@ export function AdminLoginPage({ onLogin }: { onLogin: (a: { name: string; phone
             transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
             className="mx-auto flex w-fit items-center justify-center"
           >
-            <img src="/coastal-trails-logo.svg" alt="Coastal Trails" className="h-16 w-auto object-contain" />
+            <img
+              src={`${import.meta.env.BASE_URL}coastal-trails-logo.svg`}
+              alt="Coastal Trails"
+              className="h-16 w-auto object-contain"
+            />
           </motion.div>
 
           <motion.p
