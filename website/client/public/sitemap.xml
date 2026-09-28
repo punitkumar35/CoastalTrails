@@ -1,99 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <!-- Homepage: Gokarna Homestays & Coastal Accommodations -->
   <url>
     <loc>https://coastaltrails.in/</loc>
-    <lastmod>2026-09-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/gokarna-expedition.webp</image:loc>
-      <image:title>Gokarna Homestays and Coastal Trails</image:title>
-      <image:caption>Authentic family-stewarded coastal homestays and cliff trekking across Gokarna, Karnataka</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/kudle-beach.webp</image:loc>
-      <image:title>Kudle Beach Clifftop Homestays</image:title>
-      <image:caption>Panoramic ocean view cottages on Kudle Beach cliffs in Gokarna</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/om-beach.webp</image:loc>
-      <image:title>Om Beach Rock Shacks &amp; Stays</image:title>
-      <image:caption>Beachfront living and serene sunset stays on Om Beach Gokarna</image:caption>
     </image:image>
   </url>
 
-  <!-- Homestays Directory -->
   <url>
     <loc>https://coastaltrails.in/homestays</loc>
-    <lastmod>2026-09-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
-  <!-- The Gokarna Journal: Trails, Temples & Culture -->
   <url>
     <loc>https://coastaltrails.in/trails</loc>
-    <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
+    <priority>0.9</priority>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/halfmoon-beach.webp</image:loc>
-      <image:title>Gokarna 5-Beach Cliff Trek — Half Moon Cove</image:title>
-      <image:caption>Detailed hiking guide connecting Kudle, Om, Half Moon, Paradise and Belekan beaches</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/paradise-beach.webp</image:loc>
-      <image:title>Paradise Beach Camping &amp; Bioluminescence Gokarna</image:title>
-      <image:caption>Secluded coastal trek finish and bioluminescent tides guide in Gokarna</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/yana-caves.webp</image:loc>
-      <image:title>Yana Karst Monolith Spire Caves</image:title>
-      <image:caption>Ancient limestone geological wonders near Gokarna in the Western Ghats rainforest</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/mirjan-fort.webp</image:loc>
-      <image:title>Mirjan Historic Coastal Fort</image:title>
-      <image:caption>16th century laterite architecture and heritage trail landmark near Gokarna</image:caption>
     </image:image>
   </url>
 
-  <!-- Individual Curated Stays -->
   <url>
     <loc>https://coastaltrails.in/stay/gokarna-1</loc>
-    <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/kudle-beach.webp</image:loc>
-      <image:title>Kudle Clifftop Wooden Cottage — Gokarna Homestay</image:title>
-      <image:caption>Private balcony facing the Arabian Sea with authentic Karavali breakfast</image:caption>
     </image:image>
   </url>
 
   <url>
     <loc>https://coastaltrails.in/stay/gokarna-3</loc>
-    <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/halfmoon-beach.webp</image:loc>
-      <image:title>Half Moon Secluded Rock Cottage — Gokarna Beachfront Stay</image:title>
-      <image:caption>Off-grid beach cottage accessible only by boat or cliff trail</image:caption>
     </image:image>
   </url>
 
   <url>
     <loc>https://coastaltrails.in/stay/gokarna-11</loc>
-    <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
+    <priority>0.8</priority>
     <image:image>
       <image:loc>https://coastaltrails.in/assets/real/gokarna-expedition.webp</image:loc>
-      <image:title>Main Beach Cliff Terraces — Gokarna Heritage Stay</image:title>
-      <image:caption>Traditional courtyard living minutes away from Mahabaleshwar Temple and Main Beach</image:caption>
     </image:image>
   </url>
 </urlset>
