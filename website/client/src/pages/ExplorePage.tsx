@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Search, Star, MapPin, ShieldCheck, Sparkles, Waves, Compass, HeartHandshake, Sun, Eye, Calendar, ChevronRight, ChevronLeft, Zap, Heart, LayoutGrid, Grid, List, Bookmark, MessageCircle, Wifi, Utensils, Coffee, SlidersHorizontal, Filter, X, ArrowUpDown, Check, Layers } from 'lucide-react';
+import { Search, Star, MapPin, ShieldCheck, Sparkles, Waves, Compass, HeartHandshake, Sun, Eye, Calendar, ChevronRight, ChevronLeft, Zap, Heart, LayoutGrid, Grid, List, Bookmark, MessageCircle, Wifi, Utensils, Coffee, SlidersHorizontal, Filter, X, ArrowUpDown, Check, Layers, ChevronDown, BookOpen, ArrowRight, HelpCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Homestay } from '../types';
 import { ColorfulIcon } from '../components/ColorfulIcon';
@@ -14,6 +14,121 @@ import { cn } from '../lib/cn';
 import { useLiveRefresh } from '../lib/live';
 import { getSavedOrInitialDates } from '../lib/dates';
 import { useSEO } from '../lib/seo';
+
+export const GOKARNA_FAQS = [
+  {
+    q: 'Which beach is the best to stay at in Gokarna?',
+    a: 'Kudle Beach is ideal for sunset lovers, yoga enthusiasts, and travelers wanting beachfront cafes with an easy 15-minute walk to town. Om Beach is best for adventure seekers and water sports. Half Moon and Paradise Beach offer secluded, off-grid tranquility with zero vehicular noise. Gokarna Main Beach is best for spiritual pilgrims visiting Mahabaleshwar Temple and beginners learning surfing.',
+  },
+  {
+    q: 'How does the 20% advance hold fee work on Coastal Trails?',
+    a: 'To protect travelers from high platform markups and help local hosts avoid overbooking, Coastal Trails requires only a 20% advance payment via secure Razorpay checkout to instantly reserve and lock your room dates. The remaining 80% balance is paid directly to the homestay host upon check-in.',
+  },
+  {
+    q: 'Can you drive a car or two-wheeler directly to the homestays?',
+    a: 'Vehicles can access parking points at Kudle Beach hilltop, Om Beach main parking lot, and Gokarna Town. Half Moon Beach and Paradise Beach have no road access and can only be reached via scenic cliff trek or licensed ferry boats from Om Beach.',
+  },
+  {
+    q: 'What is the Gokarna 5-Beach Cliff Trek route and distance?',
+    a: 'The 5-Beach Trek spans approximately 7.2 km along the Arabian Sea cliffline connecting Kudle Beach, Om Beach, Half Moon Beach, Paradise Beach, and Belekan Beach. It takes 3 to 4 hours at an easy pace. Starting before 8:30 AM is recommended to avoid peak afternoon sun.',
+  },
+  {
+    q: 'Are Gokarna homestays safe for solo female travelers and families?',
+    a: 'Yes. All homestays on Coastal Trails are verified, family-run properties with on-site host families, verified WhatsApp support, lockable private cottages, and transparent local assistance.',
+  },
+  {
+    q: 'What is the best season to visit Gokarna for beach stays?',
+    a: 'The prime travel season is October through March when daytime temperatures hover around 28°C to 32°C with pleasant evenings, clear starry skies, and calm sea tides for swimming and boating.',
+  },
+];
+
+export const BEACH_COMPARISON = [
+  {
+    beach: 'Kudle Beach',
+    vibe: 'Vibrant & Bohemian',
+    access: 'Hilltop parking + 5-min cliff walk',
+    bestFor: 'Couples, remote workers, yoga',
+    tariff: '₹1,400 – ₹3,500/night',
+    slug: 'kudle-beach',
+  },
+  {
+    beach: 'Om Beach',
+    vibe: 'Active & Scenic',
+    access: 'Paved road directly to parking lot',
+    bestFor: 'Water sports, boat rides, families',
+    tariff: '₹1,800 – ₹4,200/night',
+    slug: 'om-beach',
+  },
+  {
+    beach: 'Half Moon Beach',
+    vibe: 'Off-grid & Secluded',
+    access: 'Cliff trek or 10-min ferry from Om',
+    bestFor: 'Solitude, stargazing, backpackers',
+    tariff: '₹1,200 – ₹2,500/night',
+    slug: 'half-moon-beach',
+  },
+  {
+    beach: 'Paradise Beach',
+    vibe: 'Wild & Untouched',
+    access: 'Cliff path or boat only (no roads)',
+    bestFor: 'Eco pods, nature purists, camping',
+    tariff: '₹900 – ₹2,200/night',
+    slug: 'paradise-beach',
+  },
+  {
+    beach: 'Main Beach / Town',
+    vibe: 'Cultural & Historic',
+    access: 'Direct road and auto-rickshaw access',
+    bestFor: 'Temple darshan, surfing, authentic food',
+    tariff: '₹1,000 – ₹2,800/night',
+    slug: 'main-beach',
+  },
+];
+
+export const TRAVEL_GUIDES_SILO = [
+  {
+    title: 'Gokarna 5-Beach Cliff Trek Guide',
+    desc: 'Step-by-step trail map, terrain difficulty, water points, and return boat logistics from Belekan.',
+    url: '/gokarna/5-beach-trek/',
+    tag: 'Popular Trek',
+    badge: '7.2 km Trail',
+  },
+  {
+    title: 'All Gokarna Beaches Ranked',
+    desc: 'Detailed breakdown of all 5 coastal coves with swimming safety, sunsets, and local cafe guides.',
+    url: '/gokarna/beaches/',
+    tag: 'Beach Guide',
+    badge: '5 Beaches',
+  },
+  {
+    title: 'Paradise & Half Moon Beach Camping',
+    desc: 'Legal camping spots, starry skies, tent safety guidelines, and bonfires on secluded sands.',
+    url: '/gokarna/camping/',
+    tag: 'Outdoor',
+    badge: 'Off-Grid',
+  },
+  {
+    title: 'Best Time to Visit Gokarna',
+    desc: 'Month-by-month weather analysis, seasonal sea conditions, bioluminescence timings, and festival dates.',
+    url: '/gokarna/travel-guide/best-time-to-visit/',
+    tag: 'Weather & Tides',
+    badge: 'Oct – Mar',
+  },
+  {
+    title: 'How to Reach Gokarna: Train, Bus & Flight',
+    desc: 'Complete transit guide from Bangalore, Goa, Mumbai, and Mangalore with station auto rates.',
+    url: '/gokarna/travel-guide/how-to-reach/',
+    tag: 'Transit',
+    badge: 'Transit Guide',
+  },
+  {
+    title: 'Curated 3-Day Gokarna Itinerary',
+    desc: 'Optimized travel plan balancing sunrise temple visits, beach hopping, and clifftop sunsets.',
+    url: '/gokarna/travel-guide/3-day-itinerary/',
+    tag: 'Itinerary',
+    badge: '3 Days',
+  },
+];
 
 export const BEACH_SLUG_MAP: Record<string, {
   beachKey: string;
@@ -98,6 +213,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [quickFilterSearch, setQuickFilterSearch] = useState('');
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const filterRef = useRef<HTMLDivElement>(null);
   const listingsRef = useRef<HTMLElement | null>(null);
 
@@ -109,12 +225,71 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
     }
   }, [beachSlug]);
 
+  const seoSchemas: Record<string, any>[] = [
+    {
+      '@type': 'ItemList',
+      name: activeCluster ? activeCluster.headline : 'Curated Gokarna Homestays & Beach Cottages',
+      description: activeCluster
+        ? activeCluster.description
+        : 'Browse handpicked, verified family-run homestays and beachside wooden cottages across Gokarna, Karnataka.',
+      url: activeCluster
+        ? `https://coastaltrails.in/homestays/${beachSlug}`
+        : 'https://coastaltrails.in/homestays',
+      itemListElement: (homestays || [])
+        .filter((s) => !activeCluster || s.location === activeCluster.beachKey)
+        .map((stay, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: stay.title,
+          url: `https://coastaltrails.in/stay/${stay.id}`,
+        })),
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: GOKARNA_FAQS.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://coastaltrails.in/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Gokarna Homestays',
+          item: 'https://coastaltrails.in/homestays',
+        },
+        ...(activeCluster
+          ? [
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: activeCluster.name,
+                item: `https://coastaltrails.in/homestays/${beachSlug}`,
+              },
+            ]
+          : []),
+      ],
+    },
+  ];
+
   useSEO({
     title: activeCluster
-      ? `${activeCluster.headline} | Coastal Trails Gokarna`
+      ? `${activeCluster.headline} (2026) | Coastal Trails Gokarna`
       : selectedBeach && selectedBeach !== 'all'
       ? `${selectedBeach.charAt(0).toUpperCase() + selectedBeach.slice(1)} Beach Homestays, Gokarna | Coastal Trails`
-      : 'Coastal Trails — Curated Gokarna Homestays & Beach Cottages',
+      : '12 Best Gokarna Homestays & Beach Cottages (2026) | Coastal Trails',
     description: activeCluster
       ? activeCluster.metaDesc
       : 'Curated coastal homestays, beach cottages, and cliff trekking guides across Gokarna, Karnataka. Book authentic family-run stays with a 20% advance hold reservation.',
@@ -122,23 +297,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
       ? `https://coastaltrails.in/homestays/${beachSlug}`
       : 'https://coastaltrails.in/homestays',
     ogImage: activeCluster?.image || 'https://coastaltrails.in/assets/real/gokarna-expedition.webp',
-    schema: activeCluster
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'ItemList',
-          name: activeCluster.headline,
-          description: activeCluster.description,
-          url: `https://coastaltrails.in/homestays/${beachSlug}`,
-          itemListElement: (homestays || [])
-            .filter((s) => s.location === activeCluster.beachKey)
-            .map((stay, index) => ({
-              '@type': 'ListItem',
-              position: index + 1,
-              name: stay.title,
-              url: `https://coastaltrails.in/stay/${stay.id}`,
-            })),
-        }
-      : undefined,
+    schema: seoSchemas,
   });
 
   useEffect(() => {
@@ -1742,6 +1901,183 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
               6 enclaves mapped
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* 5. GOKARNA BEACHES & STAYS COMPARISON MATRIX */}
+      <section className="relative overflow-hidden rounded-3xl border border-line bg-elevated p-6 sm:p-10 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 border-b border-line pb-6">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-tide/30 bg-tide/10 px-3 py-1 font-mono text-[11px] font-semibold text-tide uppercase tracking-wider">
+              <Compass className="h-3.5 w-3.5" />
+              <span>Gokarna Stay Finder</span>
+            </div>
+            <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+              Which Gokarna Beach Fits Your Travel Style?
+            </h2>
+            <p className="mt-1 text-sm text-ink-2 max-w-2xl">
+              Compare vibes, road accessibility, typical tariffs, and top activities across Gokarna’s 5 signature coastal enclaves before choosing your homestay.
+            </p>
+          </div>
+          <Link
+            to="/trails"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-tide hover:underline self-start sm:self-auto shrink-0"
+          >
+            <span>Read The Gokarna Journal</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[620px] text-left text-xs">
+            <thead>
+              <tr className="border-b border-line text-ink-3 font-mono uppercase tracking-wider text-[10px]">
+                <th className="py-3 px-3">Beach Enclave</th>
+                <th className="py-3 px-3">Coastal Atmosphere</th>
+                <th className="py-3 px-3">Access &amp; Transit</th>
+                <th className="py-3 px-3">Best Suited For</th>
+                <th className="py-3 px-3">Avg. Nightly Tariff</th>
+                <th className="py-3 px-3 text-right">Explore</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line/60">
+              {BEACH_COMPARISON.map((row) => (
+                <tr key={row.beach} className="hover:bg-paper/40 transition-colors">
+                  <td className="py-4 px-3 font-semibold text-ink font-display text-sm">
+                    {row.beach}
+                  </td>
+                  <td className="py-4 px-3 text-ink-2">{row.vibe}</td>
+                  <td className="py-4 px-3 text-ink-2">{row.access}</td>
+                  <td className="py-4 px-3 text-ink-2">{row.bestFor}</td>
+                  <td className="py-4 px-3 font-mono font-medium text-ink">{row.tariff}</td>
+                  <td className="py-4 px-3 text-right">
+                    <Link
+                      to={`/homestays/${row.slug}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-line-2 bg-paper px-2.5 py-1 font-semibold text-[11px] text-tide hover:border-tide hover:bg-elevated transition-colors"
+                    >
+                      <span>Stays</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* 6. CURATED GOKARNA TRAVEL GUIDES & TREK JOURNALS (TOPICAL AUTHORITY SILO) */}
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-mono text-[11px] font-semibold text-gold-dark dark:text-gold uppercase tracking-wider">
+              <BookOpen className="h-3.5 w-3.5" />
+              <span>Official Field Guides</span>
+            </div>
+            <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+              Essential Gokarna Trek &amp; Travel Guides
+            </h2>
+            <p className="mt-1 text-sm text-ink-2 max-w-2xl">
+              Detailed local trail maps, tide timings, packing checklists, and transparent pricing guides curated by Karavali locals.
+            </p>
+          </div>
+          <a
+            href="/gokarna/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-tide hover:underline self-start sm:self-auto shrink-0"
+          >
+            <span>View all 12 Gokarna Guides</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {TRAVEL_GUIDES_SILO.map((guide) => (
+            <a
+              key={guide.url}
+              href={guide.url}
+              className="group relative flex flex-col justify-between rounded-2xl border border-line bg-elevated p-6 hover:border-tide hover:shadow-md transition-all duration-std"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[10px] uppercase font-semibold text-ink-3 tracking-wider">
+                    {guide.tag}
+                  </span>
+                  <span className="rounded-full bg-paper px-2 py-0.5 font-mono text-[10px] font-medium text-tide border border-line">
+                    {guide.badge}
+                  </span>
+                </div>
+                <h3 className="mt-3 font-display text-base font-bold text-ink group-hover:text-tide transition-colors">
+                  {guide.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-ink-2">
+                  {guide.desc}
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs font-semibold text-tide">
+                <span>Read Field Guide</span>
+                <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* 7. FREQUENTLY ASKED QUESTIONS (FAQ ACCORDION + SEO RICH RESULT) */}
+      <section className="rounded-3xl border border-line bg-elevated p-6 sm:p-10 shadow-sm transition-colors">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-tide/30 bg-tide/10 px-3 py-1 font-mono text-[11px] font-semibold text-tide uppercase tracking-wider">
+            <HelpCircle className="h-3.5 w-3.5" />
+            <span>Traveler Q&amp;A</span>
+          </div>
+          <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            Frequently Asked Questions About Gokarna Homestays
+          </h2>
+          <p className="mt-1 text-sm text-ink-2">
+            Everything you need to know about booking, beach transfers, cliff trek routes, and stay policies.
+          </p>
+        </div>
+
+        <div className="mt-8 space-y-3">
+          {GOKARNA_FAQS.map((faq, idx) => {
+            const isOpen = openFaqIndex === idx;
+            return (
+              <div
+                key={faq.q}
+                className="overflow-hidden rounded-2xl border border-line bg-paper/50 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                  className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-paper"
+                  aria-expanded={isOpen}
+                >
+                  <span className="font-display text-sm font-semibold text-ink sm:text-base">
+                    {faq.q}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 shrink-0 text-ink-3 transition-transform duration-200',
+                      isOpen && 'rotate-180 text-tide'
+                    )}
+                  />
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    >
+                      <div className="border-t border-line/60 px-5 pb-5 pt-3 text-xs sm:text-sm leading-relaxed text-ink-2">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

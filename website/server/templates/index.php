@@ -189,7 +189,64 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
     $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($trailsDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
     $html = preg_replace('/<meta property="og:image" content=".*?" \/>/', '<meta property="og:image" content="' . $trailsImg . '" />', $html, 1);
     $html = preg_replace('/<meta property="og:image:secure_url" content=".*?" \/>/', '<meta property="og:image:secure_url" content="' . $trailsImg . '" />', $html, 1);
-} else if (preg_match('#^/homestays/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
+}
+
+$gokarnaFaqSchema = [
+    '@context' => 'https://schema.org',
+    '@type' => 'FAQPage',
+    'mainEntity' => [
+        [
+            '@type' => 'Question',
+            'name' => 'Which beach is the best to stay at in Gokarna?',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => 'Kudle Beach is ideal for sunset lovers, yoga enthusiasts, and travelers wanting beachfront cafes with an easy 15-minute walk to town. Om Beach is best for adventure seekers and water sports. Half Moon and Paradise Beach offer secluded, off-grid tranquility with zero vehicular noise. Gokarna Main Beach is best for spiritual pilgrims visiting Mahabaleshwar Temple and beginners learning surfing.'
+            ]
+        ],
+        [
+            '@type' => 'Question',
+            'name' => 'How does the 20% advance hold fee work on Coastal Trails?',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => 'Coastal Trails requires only a 20% advance payment online via secure Razorpay checkout to instantly reserve and lock your room dates. The remaining 80% balance is paid directly to your homestay host upon check-in.'
+            ]
+        ],
+        [
+            '@type' => 'Question',
+            'name' => 'Can you drive a car or two-wheeler directly to the homestays?',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => 'Vehicles can access parking points at Kudle Beach hilltop, Om Beach main parking lot, and Gokarna Town. Half Moon Beach and Paradise Beach have no road access and can only be reached via scenic cliff trek or licensed ferry boats from Om Beach.'
+            ]
+        ],
+        [
+            '@type' => 'Question',
+            'name' => 'What is the Gokarna 5-Beach Cliff Trek route and distance?',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => 'The signature Gokarna 5-Beach Trek spans approximately 7.2 km along the Arabian Sea cliffline connecting Kudle Beach, Om Beach, Half Moon Beach, Paradise Beach, and Belekan Beach. It takes roughly 3 to 4 hours at an easy pace.'
+            ]
+        ],
+        [
+            '@type' => 'Question',
+            'name' => 'Are Gokarna homestays safe for solo female travelers and families?',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => 'Yes. All homestays on Coastal Trails are verified, family-run properties with on-site host families, verified WhatsApp support, lockable private cottages, and transparent local assistance.'
+            ]
+        ],
+        [
+            '@type' => 'Question',
+            'name' => 'What is the best season to visit Gokarna for beach stays?',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => 'The prime travel season is October through March when daytime temperatures hover around 28°C to 32°C with pleasant evenings, clear starry skies, and calm sea tides for swimming and boating.'
+            ]
+        ]
+    ]
+];
+
+if (preg_match('#^/homestays/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
     $slug = $matches[1];
     $clusterMeta = [
         'kudle-beach' => [
@@ -230,9 +287,22 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
         $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($meta['desc'], ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
         $html = preg_replace('/<meta property="og:image" content=".*?" \/>/', '<meta property="og:image" content="' . $meta['image'] . '" />', $html, 1);
         $html = preg_replace('/<meta property="og:image:secure_url" content=".*?" \/>/', '<meta property="og:image:secure_url" content="' . $meta['image'] . '" />', $html, 1);
+
+        $breadcrumbSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => 'https://coastaltrails.in/'],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => 'Gokarna Homestays', 'item' => 'https://coastaltrails.in/homestays'],
+                ['@type' => 'ListItem', 'position' => 3, 'name' => $meta['title'], 'item' => $pageUrl]
+            ]
+        ];
+        $schemaJson = "\n    <script type=\"application/ld+json\">\n    " . json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+        $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($gokarnaFaqSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+        $html = str_replace('</head>', $schemaJson . '</head>', $html);
     }
 } else if ($path === '/homestays') {
-    $staysTitle = 'Curated Gokarna Homestays & Beach Cottages | Coastal Trails';
+    $staysTitle = '12 Best Gokarna Homestays & Beach Cottages (2026) | Coastal Trails';
     $staysDesc = 'Browse curated family-run homestays, clifftop wooden cottages, and beachside rooms across Kudle, Om, and Half Moon Beach. 20% hold reservation.';
     $staysUrl = 'https://coastaltrails.in/homestays';
 
@@ -242,6 +312,18 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
     $html = preg_replace('/<meta property="og:url" content=".*?" \/>/', '<meta property="og:url" content="' . $staysUrl . '" />', $html, 1);
     $html = preg_replace('/<meta property="og:title" content=".*?" \/>/', '<meta property="og:title" content="' . htmlspecialchars($staysTitle, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
     $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($staysDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+
+    $breadcrumbSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => 'https://coastaltrails.in/'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Gokarna Homestays', 'item' => $staysUrl]
+        ]
+    ];
+    $schemaJson = "\n    <script type=\"application/ld+json\">\n    " . json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+    $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($gokarnaFaqSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+    $html = str_replace('</head>', $schemaJson . '</head>', $html);
 }
 
 // 3. Deliver rendered HTML

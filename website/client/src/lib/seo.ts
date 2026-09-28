@@ -6,7 +6,7 @@ interface SEOProps {
   canonical?: string;
   ogType?: 'website' | 'article';
   ogImage?: string;
-  schema?: Record<string, any>;
+  schema?: Record<string, any> | Record<string, any>[];
   noindex?: boolean;
 }
 
@@ -73,7 +73,10 @@ export function useSEO({ title, description, canonical, ogType = 'website', ogIm
         scriptTag.type = 'application/ld+json';
         document.head.appendChild(scriptTag);
       }
-      scriptTag.textContent = JSON.stringify(schema);
+      const formattedSchema = Array.isArray(schema)
+        ? { '@context': 'https://schema.org', '@graph': schema }
+        : schema;
+      scriptTag.textContent = JSON.stringify(formattedSchema);
     } else if (scriptTag) {
       scriptTag.remove();
     }
