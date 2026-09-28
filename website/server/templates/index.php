@@ -175,20 +175,6 @@ if (preg_match('#^/stay/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
     } catch (\Throwable $e) {
         // Fall back gracefully to base index.html
     }
-} else if ($path === '/trails') {
-    $trailsTitle = 'The Gokarna Journal — 5-Beach Cliff Trek, Heritage Temples & Culture | Coastal Trails';
-    $trailsDesc = 'Curated field guide to Gokarna: 5-beach cliff trek (Kudle to Paradise), Mahabaleshwar Atmalinga heritage, Yana caves, Mirjan Fort, and Karavali coastal etiquette.';
-    $trailsUrl = 'https://coastaltrails.in/trails';
-    $trailsImg = 'https://coastaltrails.in/assets/real/halfmoon-beach.webp';
-
-    $html = preg_replace('/<title>.*?<\/title>/s', '<title>' . htmlspecialchars($trailsTitle, ENT_QUOTES, 'UTF-8') . '</title>', $html, 1);
-    $html = preg_replace('/<link rel="canonical" href=".*?" \/>/', '<link rel="canonical" href="' . $trailsUrl . '" />', $html, 1);
-    $html = preg_replace('/<meta\s+name="description"\s+content=".*?"\s*\/>/s', '<meta name="description" content="' . htmlspecialchars($trailsDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
-    $html = preg_replace('/<meta property="og:url" content=".*?" \/>/', '<meta property="og:url" content="' . $trailsUrl . '" />', $html, 1);
-    $html = preg_replace('/<meta property="og:title" content=".*?" \/>/', '<meta property="og:title" content="' . htmlspecialchars($trailsTitle, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
-    $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($trailsDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
-    $html = preg_replace('/<meta property="og:image" content=".*?" \/>/', '<meta property="og:image" content="' . $trailsImg . '" />', $html, 1);
-    $html = preg_replace('/<meta property="og:image:secure_url" content=".*?" \/>/', '<meta property="og:image:secure_url" content="' . $trailsImg . '" />', $html, 1);
 }
 
 $gokarnaFaqSchema = [
@@ -246,6 +232,45 @@ $gokarnaFaqSchema = [
     ]
 ];
 
+if ($path === '/trails') {
+    $trailsTitle = 'The Gokarna Guide & Field Journal — 5-Beach Trek, Beaches & Culture | Coastal Trails';
+    $trailsDesc = 'Curated field guide to Gokarna: 5-beach cliff trek (Kudle to Paradise), Mahabaleshwar Atmalinga heritage, beach comparison, packing tips, and local etiquette.';
+    $trailsUrl = 'https://coastaltrails.in/trails';
+    $trailsImg = 'https://coastaltrails.in/assets/real/halfmoon-beach.webp';
+
+    $html = preg_replace('/<title>.*?<\/title>/s', '<title>' . htmlspecialchars($trailsTitle, ENT_QUOTES, 'UTF-8') . '</title>', $html, 1);
+    $html = preg_replace('/<link rel="canonical" href=".*?" \/>/', '<link rel="canonical" href="' . $trailsUrl . '" />', $html, 1);
+    $html = preg_replace('/<meta\s+name="description"\s+content=".*?"\s*\/>/s', '<meta name="description" content="' . htmlspecialchars($trailsDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+    $html = preg_replace('/<meta property="og:url" content=".*?" \/>/', '<meta property="og:url" content="' . $trailsUrl . '" />', $html, 1);
+    $html = preg_replace('/<meta property="og:title" content=".*?" \/>/', '<meta property="og:title" content="' . htmlspecialchars($trailsTitle, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+    $html = preg_replace('/<meta property="og:description" content=".*?" \/>/s', '<meta property="og:description" content="' . htmlspecialchars($trailsDesc, ENT_QUOTES, 'UTF-8') . '" />', $html, 1);
+    $html = preg_replace('/<meta property="og:image" content=".*?" \/>/', '<meta property="og:image" content="' . $trailsImg . '" />', $html, 1);
+    $html = preg_replace('/<meta property="og:image:secure_url" content=".*?" \/>/', '<meta property="og:image:secure_url" content="' . $trailsImg . '" />', $html, 1);
+
+    $trailsBreadcrumbs = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => 'https://coastaltrails.in/'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Gokarna Guide & Journal', 'item' => $trailsUrl]
+        ]
+    ];
+    $trailsArticle = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Article',
+        'headline' => $trailsTitle,
+        'description' => $trailsDesc,
+        'image' => $trailsImg,
+        'author' => ['@type' => 'Organization', 'name' => 'Coastal Trails Editorial'],
+        'publisher' => ['@type' => 'Organization', 'name' => 'Coastal Trails', 'logo' => ['@type' => 'ImageObject', 'url' => 'https://coastaltrails.in/coastal-trails-logo.png']],
+        'mainEntityOfPage' => $trailsUrl
+    ];
+    $schemaJson = "\n    <script type=\"application/ld+json\">\n    " . json_encode($trailsArticle, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+    $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($trailsBreadcrumbs, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+    $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($gokarnaFaqSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
+    $html = str_replace('</head>', $schemaJson . '</head>', $html);
+}
+
 if (preg_match('#^/homestays/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
     $slug = $matches[1];
     $clusterMeta = [
@@ -298,7 +323,6 @@ if (preg_match('#^/homestays/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
             ]
         ];
         $schemaJson = "\n    <script type=\"application/ld+json\">\n    " . json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
-        $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($gokarnaFaqSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
         $html = str_replace('</head>', $schemaJson . '</head>', $html);
     }
 } else if ($path === '/homestays') {
@@ -322,7 +346,6 @@ if (preg_match('#^/homestays/([a-zA-Z0-9\-]+)$#', $path, $matches)) {
         ]
     ];
     $schemaJson = "\n    <script type=\"application/ld+json\">\n    " . json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
-    $schemaJson .= "    <script type=\"application/ld+json\">\n    " . json_encode($gokarnaFaqSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n    </script>\n";
     $html = str_replace('</head>', $schemaJson . '</head>', $html);
 }
 
