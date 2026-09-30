@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { easeOut } from '../../lib/motion';
 import {
   CalendarCheck,
   Heart,
@@ -57,6 +59,7 @@ export function ProfileLayout({
     noindex: true,
   });
 
+  const location = useLocation();
   const [profile, setProfile] = useState<User | null>(currentUser);
 
   useEffect(() => {
@@ -233,7 +236,14 @@ export function ProfileLayout({
         </aside>
 
         <div className="min-w-0">
-          <Outlet context={{ profile: display, onUserUpdate, onSignOut } satisfies ProfileContextValue} />
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: easeOut }}
+          >
+            <Outlet context={{ profile: display, onUserUpdate, onSignOut } satisfies ProfileContextValue} />
+          </motion.div>
         </div>
       </div>
     </div>

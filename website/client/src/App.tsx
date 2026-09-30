@@ -330,7 +330,7 @@ export function App() {
 
       <main className="w-full flex-1 px-3 pb-24 pt-18 sm:px-8 sm:pb-8 sm:pt-24 lg:px-10">
         <motion.div
-          key={location.pathname}
+          key={location.pathname.startsWith('/profile') ? '/profile' : location.pathname}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: easeOut }}
