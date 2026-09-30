@@ -541,52 +541,116 @@ export async function sendAdminNewBookingAlert({ to, booking, stayTitle, locatio
 export async function sendPasswordResetEmail({ to, name, resetUrl, minutes = 15 }) {
   const safeName = escapeHtml(String(name || 'traveller').split(' ')[0]);
   const safeUrl = escapeHtml(resetUrl);
+  const statusPill = pill('Single-Use Link', '#b45309', '#fef8ec', '#f6d8a3');
   const inner = `
-  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-container" style="max-width:560px;margin:0 auto;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;">
-    <tr>
-      <td style="background:linear-gradient(135deg,#0f3d35 0%,#0b141e 100%);padding:28px 32px;">
-        <img src="cid:wordmark" alt="Coastal Trails" width="168" style="display:block;height:auto;" />
-      </td>
-    </tr>
-    <tr>
-      <td class="mobile-padding" style="padding:34px 32px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#00756f;">Account recovery</p>
-        <h1 style="margin:0 0 14px;font-size:26px;line-height:1.2;font-weight:700;color:#16222e;">Reset your password</h1>
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4c5a68;">
-          Hi ${safeName}, we received a request to reset the password for your Coastal Trails account. Click the button below to choose a new one.
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td class="mobile-padding" align="center" style="padding:6px 32px 4px;">
-        <a href="${safeUrl}" style="display:inline-block;background-color:#00756f;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 34px;border-radius:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          Reset Password
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td class="mobile-padding" style="padding:22px 32px 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f6f3ea;border-radius:12px;">
+        <table role="presentation" class="email-container" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.05);">
+
           <tr>
-            <td style="padding:14px 18px;font-size:13px;line-height:1.65;color:#4c5a68;">
-              This link expires in <strong style="color:#16222e;">${minutes} minutes</strong> and can only be used once.
+            <td class="mobile-padding" style="padding:16px 22px;background-color:#ffffff;border-bottom:1px solid #edf2f7;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="56" valign="middle" style="padding-right:10px;">
+                    <img src="cid:coastallogo" alt="Coastal Trails" width="50" style="display:block;width:50px;height:auto;border:0;background:transparent;">
+                  </td>
+                  <td valign="middle">
+                    <div>
+                      <span style="background-color:#e4f2ee;color:#0f3d35;font-size:9px;font-weight:800;letter-spacing:0.8px;padding:3px 6px;border-radius:4px;text-transform:uppercase;">Security Notice</span>
+                    </div>
+                    <div style="font-family:'Courier New',monospace;font-size:15px;font-weight:800;color:#0f3d35;letter-spacing:0.5px;margin-top:3px;">PASSWORD RECOVERY</div>
+                    <div style="font-size:10px;color:#697471;margin-top:2px;letter-spacing:0.2px;">Account: ${safeName}</div>
+                  </td>
+                  <td align="right" valign="middle">
+                    ${statusPill}
+                    <div style="font-size:10px;color:#697471;margin-top:3px;">${escapeHtml(fmtDate(new Date()))}</div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-        </table>
-        <p style="margin:16px 0 0;font-size:12.5px;line-height:1.7;color:#7e8b97;">
-          If the button does not work, copy and paste this link into your browser:<br />
-          <a href="${safeUrl}" style="color:#00756f;word-break:break-all;">${safeUrl}</a>
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td class="mobile-padding" style="padding:18px 32px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;border-top:1px solid #edf2f7;">
-        <p style="margin:0;font-size:12.5px;line-height:1.7;color:#7e8b97;">
-          Didn&rsquo;t request this? You can safely ignore this email &mdash; your password will not change until the link above is used.
-        </p>
-      </td>
-    </tr>
-  </table>`;
+
+          <tr>
+            <td class="mobile-padding" style="padding:24px 22px 18px 22px;text-align:center;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom:16px;">
+                    <img src="cid:wordmark" alt="Coastal Trails" width="240" style="width:240px;max-width:80%;height:auto;display:block;margin:0 auto;border:0;">
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 10px auto;">
+                <tr>
+                  <td style="background-color:#ecfdf5;border:1px solid #a7f3d0;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;color:#047857;">
+                    ${icon('shield-check', 12, 'margin-right:3px;')}
+                    Verified Account Protection
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;line-height:28px;color:#0f3d35;font-weight:800;letter-spacing:-0.3px;text-align:center;">
+                Reset Your Password
+              </h2>
+
+              <p style="margin:0 auto 16px auto;max-width:480px;font-size:14px;line-height:22px;color:#4a5568;text-align:center;">
+                Hi <strong>${safeName}</strong>, we received a request to reset your Coastal Trails account password. Click the button below to choose a new password.
+              </p>
+
+              <div style="margin:20px 0 16px 0;text-align:center;">
+                <a href="${safeUrl}" style="display:inline-block;background-color:#0f3d35;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 32px;border-radius:10px;box-shadow:0 2px 8px rgba(15,61,53,0.25);">
+                  Reset Password Now
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:16px 22px;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;background-color:#fafcfb;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" valign="top" class="itinerary-half" style="padding-right:12px;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Link Validity</div>
+                    <div style="font-size:15px;font-weight:800;color:#0f172a;margin:2px 0;">${minutes} Minutes</div>
+                    <div style="font-size:11px;color:#64748b;">${icon('clock', 11, 'margin-right:2px;')} Expires automatically</div>
+                  </td>
+                  <td width="50%" align="right" valign="top" class="itinerary-half" style="padding-left:12px;border-left:1px dashed #e2e8f0;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Security Level</div>
+                    <div style="font-size:15px;font-weight:800;color:#0f3d35;margin:2px 0;">Single-Use</div>
+                    <div style="font-size:11px;color:#047857;">${icon('check-circle-2', 11, 'margin-right:2px;')} Encrypted Token</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:18px 22px;">
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">Button not working?</div>
+                <div style="font-size:11px;color:#64748b;line-height:16px;word-break:break-all;">
+                  Copy and paste this URL directly into your browser:<br>
+                  <a href="${safeUrl}" style="color:#0f3d35;font-weight:600;text-decoration:underline;">${safeUrl}</a>
+                </div>
+              </div>
+
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size:11px;color:#64748b;line-height:17px;">
+                <tr>
+                  <td valign="top" style="padding-right:6px;">${icon('bell', 13)}</td>
+                  <td valign="top">
+                    Didn&rsquo;t request this password reset? You can safely ignore this email &mdash; your account remains secure and your password will not be changed.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="background-color:#ffffff;border-top:1px solid #f0eee3;padding:18px 22px;text-align:center;">
+              <p style="margin:0 0 5px 0;font-size:11px;color:#43504d;font-weight:600;">Have questions or need assistance with your account?</p>
+              <p style="margin:0 0 8px 0;font-size:12px;color:#626f6b;">Our concierge team is ready to assist at <a href="mailto:support@coastaltrails.in" style="color:#0f3d35;font-weight:800;text-decoration:underline;">support@coastaltrails.in</a></p>
+              <p style="margin:0;font-size:10px;color:#8e9794;letter-spacing:0.3px;">&copy; 2026 Coastal Trails Hospitality Network &bull; Gokarna, Karnataka. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>`;
   return send({
     to,
     subject: 'Reset your Coastal Trails password',
