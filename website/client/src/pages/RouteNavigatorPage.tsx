@@ -580,7 +580,7 @@ export const RouteNavigatorPage: React.FC = () => {
   const showBeachIndex = filter === 'all' || filter === 'beach';
 
   return (
-    <div className="mx-auto w-full max-w-shell space-y-14 sm:space-y-20">
+    <div className="w-full space-y-14 sm:space-y-20">
       {/* ============ MASTHEAD ============ */}
       <header className="border-b border-ink pb-8 pt-6 text-center sm:pt-10">
         <div className="flex items-center justify-center gap-3 font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-ink-3">

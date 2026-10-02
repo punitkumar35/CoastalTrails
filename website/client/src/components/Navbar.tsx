@@ -110,6 +110,20 @@ export function Navbar({
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <NavbarWeatherBadge />
             <button
+              onClick={() => navigate('/support')}
+              aria-label="Support Desk"
+              title="Support Desk"
+              className={cn(
+                'flex h-8 sm:h-9 px-2 sm:px-3 shrink-0 items-center justify-center gap-1.5 rounded-full border transition-all text-xs font-semibold',
+                location.pathname === '/support' || location.pathname === '/contact'
+                  ? 'border-tide bg-tide/10 text-tide'
+                  : 'border-line bg-elevated text-ink-2 hover:border-tide/40 hover:text-ink'
+              )}
+            >
+              <LifeBuoy className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-tide shrink-0" />
+              <span className="hidden sm:inline">Support</span>
+            </button>
+            <button
               onClick={toggle}
               aria-label="Toggle theme"
               className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-ink-2 transition-colors hover:text-ink"
@@ -250,7 +264,7 @@ export function Navbar({
             )}
           >
             <LifeBuoy className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Help</span>
+            <span className="text-[10px] font-medium">Support</span>
           </button>
         </div>
       </nav>

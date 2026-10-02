@@ -92,7 +92,7 @@ export function ProfileLayout({
     : '';
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <header className="relative overflow-hidden rounded-[28px] border border-line bg-[radial-gradient(120%_140%_at_15%_0%,oklch(0.34_0.07_205)_0%,oklch(0.23_0.045_235)_45%,oklch(0.16_0.03_258)_100%)] px-6 py-7 text-white shadow-[0_24px_60px_-30px_rgba(11,20,30,0.55)] sm:px-8 sm:py-8">
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-gold/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 right-24 h-48 w-48 rounded-full bg-tide-glow/20 blur-3xl" />
@@ -147,7 +147,7 @@ export function ProfileLayout({
         </div>
       </header>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[248px_minmax(0,1fr)] lg:gap-8">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
         <nav aria-label="Profile sections" className="lg:hidden">
           <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
             {navItems.map((item) => (

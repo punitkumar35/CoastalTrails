@@ -434,7 +434,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
 
       {/* 2. Active Reservation Card (Airbnb / MakeMyTrip Special) */}
       {selectedBooking ? (
-        <section className="mx-auto max-w-6xl">
+        <section className="w-full">
           <div className="rounded-3xl border border-line bg-elevated p-6 shadow-sm sm:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-start gap-4">
@@ -498,7 +498,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
       ) : null}
 
       {/* 3. Explore Help by Category (Airbnb-Style 6 Topics Grid) */}
-      <section className="mx-auto max-w-6xl">
+      <section className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-line pb-4">
           <div>
             <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Browse by Category</span>
@@ -507,7 +507,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
           <span className="text-xs text-ink-3">Select a topic to view instant guides or raise a direct inquiry</span>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {TOPICS.map((topic) => {
             const Icon = topic.icon;
             const isSelected = selectedTopic === topic.id;
@@ -545,7 +545,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
       </section>
 
       {/* 4. Support Desk & Ticket Portal (MakeMyTrip Multi-Service Hub) */}
-      <section id="ticket-form-section" className="mx-auto max-w-6xl pt-4">
+      <section id="ticket-form-section" className="w-full pt-4">
         {/* Navigation Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
           <div>
@@ -1106,7 +1106,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
       </section>
 
       {/* 5. 24x7 Direct Assistance Channels (MakeMyTrip Contact Bar) */}
-      <section className="mx-auto max-w-6xl">
+      <section className="w-full">
         <div className="border-b border-line pb-4">
           <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Direct Contact</span>
           <h2 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Still Need Help? Reach Our Team</h2>
@@ -1187,7 +1187,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
       </section>
 
       {/* 6. Filterable FAQs Accordion */}
-      <section className="mx-auto max-w-4xl border-t border-line pt-12">
+      <section className="w-full max-w-5xl mx-auto border-t border-line pt-12">
         <div className="text-center">
           <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Self Service</span>
           <h2 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Frequently Asked Questions</h2>
@@ -1232,7 +1232,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
       </section>
 
       {/* 7. Airbnb-Style "CoastalCover" Guarantee Strip */}
-      <section className="mx-auto max-w-6xl">
+      <section className="w-full">
         <div className="rounded-3xl border border-line bg-elevated p-8 sm:p-10 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
             <div className="flex items-center gap-3">

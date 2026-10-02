@@ -401,7 +401,7 @@ export function BookingPage({
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-6">
+      <div className="w-full space-y-6">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <Skeleton className="h-96 w-full rounded-3xl" />
@@ -427,7 +427,7 @@ export function BookingPage({
   const images = homestay.imageUrls && homestay.imageUrls.length > 0 ? homestay.imageUrls : [FALLBACK_IMAGE];
 
   return (
-    <div className="mx-auto w-full max-w-5xl pb-16">
+    <div className="w-full pb-16">
       <button
         onClick={() => navigate(-1)}
         className="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-ink-2 transition-colors hover:text-tide"
@@ -683,7 +683,7 @@ export function BookingPage({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: easeOut }}
-            className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_400px]"
+            className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]"
           >
             <div className="min-w-0">
               <div className="relative h-64 overflow-hidden rounded-3xl border border-line sm:h-80">

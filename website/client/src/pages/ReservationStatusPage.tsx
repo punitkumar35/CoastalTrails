@@ -798,7 +798,7 @@ export function ReservationStatusPage({ currentUser, initialRefCode: propRefCode
 
       {!loading && matchingBookings.length > 0 ? (
         <>
-          <div className="mx-auto grid w-full max-w-3xl grid-cols-3 gap-3">
+          <div className="mx-auto grid w-full max-w-4xl 2xl:max-w-5xl grid-cols-3 gap-3 sm:gap-4">
             <div className="rounded-2xl border border-line bg-elevated p-4 text-center">
               <p className="font-display text-2xl font-semibold text-ink">{upcomingCount}</p>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink-3">Upcoming stays</p>

@@ -52,7 +52,7 @@ export default {
         xl2: '1rem',
       },
       maxWidth: {
-        shell: '1280px',
+        shell: '100%',
       },
       transitionTimingFunction: {
         out: 'cubic-bezier(0.2, 0, 0, 1)',

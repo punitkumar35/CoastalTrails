@@ -704,7 +704,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {[1, 2, 3].map((n) => (
               <div key={n} className="bg-white rounded-[28px] p-4 border border-slate-200 animate-pulse shadow-xs h-96"></div>
             ))}
@@ -1210,7 +1210,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
                   )}
 
                   {/* Row 2+: Rhythmic Companion Cards in Modern 3-Column Layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     {sortedStays.slice(2).map((stay) => {
                       const advance = Math.round(stay.price_per_night * 0.20);
                       const currentPhotoIdx = activeCardImage[stay.id] || 0;
@@ -1355,7 +1355,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
 
               {/* 2. MODERN 3-COLUMN DRIBBLE GRID (viewMode === 'grid') */}
               {viewMode === 'grid' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                   {sortedStays.map((stay) => {
                     const advance = Math.round(stay.price_per_night * 0.20);
                     const currentPhotoIdx = activeCardImage[stay.id] || 0;
