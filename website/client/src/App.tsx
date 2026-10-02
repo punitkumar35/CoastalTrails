@@ -69,6 +69,7 @@ const ContactSupportPage = lazy(() =>
   import('./pages/ContactSupportPage').then((m) => ({ default: m.ContactSupportPage })),
 );
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const GokarnaGuidePage = lazy(() => import('./pages/GokarnaGuidePage').then((m) => ({ default: m.GokarnaGuidePage })));
 const CommandPalette = lazy(() => import('./components/ui/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 function PageFallback() {
@@ -510,8 +511,8 @@ export function App() {
             <Route path="/database" element={<DatabaseStudioPage />} />
             <Route path="/survey" element={<SurveyWorkspacePage />} />
 
-            <Route path="/gokarna" element={<GokarnaGuideRedirect />} />
-            <Route path="/gokarna/*" element={<GokarnaGuideRedirect />} />
+            <Route path="/gokarna" element={<GokarnaGuidePage />} />
+            <Route path="/gokarna/*" element={<GokarnaGuidePage />} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

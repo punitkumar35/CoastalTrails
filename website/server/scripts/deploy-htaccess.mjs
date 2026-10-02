@@ -52,6 +52,9 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteRule ^api/(.*)$ api/index.php [QSA,L]
 RewriteRule ^api$ api/index.php [QSA,L]
 
+# Route /gokarna directly to React SPA index.html for unified navbar & zero reload
+RewriteRule ^gokarna/?$ index.html [L]
+
 # Let existing files and directories through (assets, uploads, admin)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d

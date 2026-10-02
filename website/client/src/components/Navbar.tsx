@@ -16,7 +16,7 @@ interface NavbarProps {
 }
 
 interface NavItem {
-  id: 'homestays' | 'route' | 'bookings';
+  id: 'homestays' | 'route' | 'bookings' | 'gokarna' | 'support';
   label: string;
   icon: LucideIcon;
   active: boolean;
@@ -40,9 +40,13 @@ export function Navbar({
   const isHomestays = location.pathname === '/' || location.pathname === '/homestays' || location.pathname.startsWith('/stay') || propTab === 'homestays';
   const isTrails = location.pathname === '/trails' || location.pathname === '/route' || propTab === 'route';
   const isBookings = location.pathname === '/bookings' || location.pathname.startsWith('/reservation') || propTab === 'bookings';
+  const isGokarna = location.pathname.startsWith('/gokarna');
+  const isSupport = location.pathname === '/support' || location.pathname === '/contact';
 
-  const handleNav = (tab: 'homestays' | 'route' | 'bookings', path: string) => {
-    if (propSetCurrentTab) propSetCurrentTab(tab);
+  const handleNav = (tab: string, path: string) => {
+    if (propSetCurrentTab && (tab === 'homestays' || tab === 'route' || tab === 'bookings')) {
+      propSetCurrentTab(tab as any);
+    }
     navigate(path);
   };
 
@@ -58,6 +62,8 @@ export function Navbar({
     { id: 'homestays', label: 'Homestays', icon: Home, active: isHomestays, path: '/' },
     { id: 'route', label: 'Trails & Culture', icon: Compass, active: isTrails, path: '/trails' },
     { id: 'bookings', label: 'Bookings', icon: CalendarCheck, active: isBookings, path: '/bookings' },
+    { id: 'gokarna', label: 'Gokarna Guide', icon: MapPin, active: isGokarna, path: '/gokarna' },
+    { id: 'support', label: 'Support', icon: LifeBuoy, active: isSupport, path: '/support' },
   ];
 
   return (
@@ -86,25 +92,6 @@ export function Navbar({
                 <span>{item.label}</span>
               </button>
             ))}
-            <a
-              href="/gokarna/"
-              className="flex items-center gap-1 xl:gap-1.5 rounded-full px-2 py-1 lg:px-2.5 lg:py-1 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap text-ink-2 hover:text-ink"
-            >
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span>Gokarna Guide</span>
-            </a>
-            <button
-              onClick={() => navigate('/support')}
-              className={cn(
-                'flex items-center gap-1 xl:gap-1.5 rounded-full px-2 py-1 lg:px-2.5 lg:py-1 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
-                location.pathname === '/support' || location.pathname === '/contact'
-                  ? 'bg-tide text-white'
-                  : 'text-ink-2 hover:text-ink'
-              )}
-            >
-              <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
-              <span>Support</span>
-            </button>
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -246,28 +233,9 @@ export function Navbar({
               )}
             >
               <item.icon className="h-5 w-5" />
-              <span className="text-[10px] tracking-tight">{item.label}</span>
+              <span className="text-[10px] tracking-tight">{item.id === 'gokarna' ? 'Guide' : item.label}</span>
             </button>
           ))}
-          <a
-            href="/gokarna/"
-            className="flex flex-col items-center gap-1 rounded-xl px-2.5 py-1 transition-colors text-ink-3 hover:text-ink"
-          >
-            <MapPin className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Guide</span>
-          </a>
-          <button
-            onClick={() => navigate('/support')}
-            className={cn(
-              'flex flex-col items-center gap-1 rounded-xl px-2.5 py-1 transition-colors',
-              location.pathname === '/support' || location.pathname === '/contact'
-                ? 'text-tide font-semibold'
-                : 'text-ink-3 hover:text-ink'
-            )}
-          >
-            <LifeBuoy className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Support</span>
-          </button>
         </div>
       </nav>
     </>
