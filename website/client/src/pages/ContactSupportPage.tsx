@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   LifeBuoy,
@@ -21,52 +21,123 @@ import {
   ExternalLink,
   MessageCircle,
   Sparkles,
+  Calendar,
+  CreditCard,
+  RefreshCw,
+  Home,
+  Compass,
+  UserCheck,
+  Lock,
+  FileText,
+  User as UserIcon,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { cn } from '../lib/cn';
-import type { SupportTicket, SupportTicketMessage, TicketCategory, TicketPriority, User } from '../types';
+import type { Booking, SupportTicket, SupportTicketMessage, TicketCategory, TicketPriority, User } from '../types';
 
-const CATEGORIES: { id: TicketCategory; label: string; desc: string }[] = [
-  { id: 'booking', label: 'Booking Inquiry', desc: 'Questions on reservation, dates or dates extension' },
-  { id: 'payment', label: 'Payment & 20% Hold', desc: 'Hold payment status, gateway charges, or receipts' },
-  { id: 'cancellation', label: 'Cancellation & Refund', desc: 'Free 48h cancellation, refunds, or property credits' },
-  { id: 'property_host', label: 'Stay & Host Coordination', desc: 'Reaching host, amenities, check-in time or directions' },
-  { id: 'trail_transit', label: 'Trails & Ferry Transit', desc: 'Cliff treks, scooter rental, ferry boats, or auto rates' },
-  { id: 'account', label: 'Account & Profile', desc: 'Login, password reset, or traveler profile details' },
-  { id: 'general', label: 'Other Concierge Help', desc: 'General questions about visiting Gokarna' },
+interface TopicCard {
+  id: TicketCategory;
+  title: string;
+  desc: string;
+  icon: typeof Calendar;
+  color: string;
+}
+
+const TOPICS: TopicCard[] = [
+  {
+    id: 'booking',
+    title: 'Reservation & Dates',
+    desc: 'Modify dates, vouchers, guest counts, or booking confirmation',
+    icon: Calendar,
+    color: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300',
+  },
+  {
+    id: 'payment',
+    title: 'Payment & 20% Hold',
+    desc: 'Hold transaction receipts, online checkout, and balance at check-in',
+    icon: CreditCard,
+    color: 'text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300',
+  },
+  {
+    id: 'cancellation',
+    title: 'Cancellation & Refunds',
+    desc: 'Free 48h cancellation rules, refund timelines, and policies',
+    icon: RefreshCw,
+    color: 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300',
+  },
+  {
+    id: 'property_host',
+    title: 'Stay & Host Coordination',
+    desc: 'Arrival timing, luggage drop, property amenities, and host WhatsApp',
+    icon: Home,
+    color: 'text-sky-700 bg-sky-50 dark:bg-sky-950/40 dark:text-sky-300',
+  },
+  {
+    id: 'trail_transit',
+    title: 'Trails & Ferry Transit',
+    desc: '5-beach cliff trek route, fisherman boats to Half Moon & Paradise',
+    icon: Compass,
+    color: 'text-teal-700 bg-teal-50 dark:bg-teal-950/40 dark:text-teal-300',
+  },
+  {
+    id: 'account',
+    title: 'Account, Safety & Privacy',
+    desc: 'Sign in help, password resets, verified profile, and data security',
+    icon: ShieldCheck,
+    color: 'text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-300',
+  },
 ];
 
-const FAQS = [
+const FAQS: { category: TicketCategory | 'all'; q: string; a: string }[] = [
   {
+    category: 'payment',
     q: 'How does the 20% commitment hold work?',
-    a: 'You pay 20% online through our secure gateway to lock in your room and dates directly with the host. The remaining 80% balance is payable in person at the property upon check-in via cash, UPI, or card.',
+    a: 'You pay 20% online to lock your dates directly with the host. The remaining 80% balance is payable upon arrival at the property via cash, UPI, or card. We charge zero platform convenience fees.',
   },
   {
+    category: 'cancellation',
     q: 'What is the cancellation and refund policy?',
-    a: 'Cancellations are 100% free with full refund of the 20% hold if cancelled at least 48 hours before the check-in date. If cancelled inside 48 hours, the hold is retained as a host reservation commitment.',
+    a: 'Cancellations are 100% free with a full refund of your 20% hold if cancelled at least 48 hours prior to check-in. Within 48 hours, the hold is retained as a reservation commitment for the host.',
   },
   {
+    category: 'property_host',
     q: 'How do I contact my host directly before check-in?',
-    a: 'Once your booking is confirmed, your voucher displays your host’s direct phone and WhatsApp contact with a one-tap message button. You can also view it anytime from My Bookings.',
+    a: 'Once your reservation is confirmed, your voucher provides the host’s direct phone and WhatsApp contact with a one-tap message button. You can also view it anytime from My Bookings.',
   },
   {
+    category: 'trail_transit',
     q: 'How do I reach secluded beaches like Half Moon or Paradise?',
-    a: 'Half Moon and Paradise Beach are vehicle-free sanctuaries. You can reach them via scenic coastal cliff treks starting from Om Beach or Kudle Beach, or via the licensed fisherman ferry boats running from Om Beach and Tadadi Jetty.',
+    a: 'Half Moon and Paradise Beach are vehicle-free zones. You can reach them via scenic coastal cliff trails starting from Om Beach or Kudle Beach, or via licensed ferry boats operating from Om Beach and Tadadi Jetty.',
   },
   {
-    q: 'What should I do if I did not receive a confirmation email?',
-    a: 'Check your spam or promotions folder first. You can always download your voucher anytime under My Bookings, or file a quick ticket below and our concierge desk will re-verify and send it to you.',
+    category: 'booking',
+    q: 'Where can I access my digital booking voucher?',
+    a: 'Your digital pass and fare voucher are accessible anytime under My Bookings &bull; View Voucher. A copy is also emailed to you immediately after your 20% hold is captured.',
+  },
+  {
+    category: 'account',
+    q: 'How do I reset my account password or update my phone number?',
+    a: 'Go to Profile &bull; Security to change your password or click "Forgot Password" on the sign-in modal to receive a single-use encrypted reset link. Profile details can be updated under Profile &bull; Edit.',
   },
 ];
 
 export function ContactSupportPage({ currentUser }: { currentUser?: User | null }) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const urlTicket = searchParams.get('ticket') || '';
   const urlBooking = searchParams.get('booking') || '';
 
   const [activeTab, setActiveTab] = useState<'create' | 'track' | 'my-tickets'>(
     urlTicket ? 'track' : 'create'
   );
+
+  // Search filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState<TicketCategory | 'all'>('all');
+
+  // Bookings list for active reservation banner
+  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   // Form State
   const [category, setCategory] = useState<TicketCategory>('booking');
@@ -98,19 +169,30 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
   const [loadingMyTickets, setLoadingMyTickets] = useState(false);
 
   // FAQ Accordion State
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Auto-fill user info if currentUser becomes available
+  // Load user profile & recent bookings
   useEffect(() => {
     if (currentUser) {
       if (!name) setName(currentUser.name);
       if (!email && currentUser.email) setEmail(currentUser.email);
       if (!phone && currentUser.phone) setPhone(currentUser.phone);
       if (!trackEmail && currentUser.email) setTrackEmail(currentUser.email);
+
+      api
+        .getBookings()
+        .then((b) => {
+          setRecentBookings(b || []);
+          if (b && b.length > 0) {
+            setSelectedBooking(b[0]);
+            if (!bookingRef) setBookingRef(b[0].reference_code);
+          }
+        })
+        .catch(() => {});
     }
   }, [currentUser]);
 
-  // Load ticket automatically if url ticket present
+  // Handle URL ticket parameter
   useEffect(() => {
     if (urlTicket) {
       setTrackNumber(urlTicket);
@@ -165,7 +247,6 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
       });
 
       setCreatedTicket(res.ticket);
-      // Reset form fields
       setSubject('');
       setDescription('');
     } catch (err: any) {
@@ -228,32 +309,50 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
     setTimeout(() => setCopiedCode(false), 2000);
   }
 
+  function openTideChatWithCategory(cat: TicketCategory) {
+    setCategory(cat);
+    setActiveTab('create');
+    const el = document.getElementById('ticket-form-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  const filteredFaqs = useMemo(() => {
+    return FAQS.filter((f) => {
+      const matchTopic = selectedTopic === 'all' || f.category === selectedTopic;
+      const matchQuery =
+        !searchQuery.trim() ||
+        f.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.a.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchTopic && matchQuery;
+    });
+  }, [selectedTopic, searchQuery]);
+
   function getStatusBadge(status: string) {
     switch (status) {
       case 'open':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-            Open &bull; Awaiting Review
+            Open &bull; Concierge Reviewing
           </span>
         );
       case 'in_progress':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-800 dark:border-sky-700/50 dark:bg-sky-950/40 dark:text-sky-300">
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-800 dark:border-sky-700/50 dark:bg-sky-950/40 dark:text-sky-300">
             <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-            In Progress &bull; Concierge Working
+            In Progress &bull; Working on Solution
           </span>
         );
       case 'resolved':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-3 w-3 text-emerald-600" />
             Resolved
           </span>
         );
       case 'closed':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-line bg-paper-2 px-2.5 py-0.5 text-xs font-semibold text-ink-3">
+          <span className="inline-flex items-center gap-1 rounded-full border border-line bg-paper-2 px-2.5 py-0.5 text-[11px] font-semibold text-ink-3">
             Closed
           </span>
         );
@@ -263,191 +362,326 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
   }
 
   return (
-    <div className="min-h-screen pb-24 pt-6 md:pb-16">
-      {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-3xl border border-line bg-[radial-gradient(120%_140%_at_50%_0%,oklch(0.30_0.06_255)_0%,oklch(0.18_0.03_262)_60%,oklch(0.12_0.025_265)_100%)] px-6 py-12 text-white sm:px-10 sm:py-16">
-        <div className="relative z-10 max-w-3xl">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-tide-glow backdrop-blur-xs">
+    <div className="min-h-screen pb-24 pt-4 md:pb-16 space-y-10">
+      {/* 1. Airbnb-Style Clean Hero Header */}
+      <section className="relative overflow-hidden rounded-3xl border border-line bg-[radial-gradient(130%_140%_at_50%_0%,oklch(0.28_0.07_255)_0%,oklch(0.18_0.03_262)_65%,oklch(0.12_0.025_265)_100%)] px-6 py-12 text-white sm:px-12 sm:py-16 shadow-2xl">
+        <div className="relative z-10 mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-tide-glow backdrop-blur-xs">
             <LifeBuoy className="h-3.5 w-3.5" />
-            Coastal Concierge Desk
+            Coastal Trails Help Center
           </span>
-          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
-            How can we help your coastal journey?
+          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+            {currentUser ? `Hi ${currentUser.name.split(' ')[0]}, how can we help?` : 'How can we help you?'}
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
-            From booking changes and 20% hold questions to cliff trail advice and host coordination — our local team in
-            Gokarna is here to assist you promptly.
+          <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base max-w-xl mx-auto">
+            Search our coastal knowledge base, manage your reservation, or connect directly with our Gokarna concierge desk.
           </p>
-        </div>
 
-        {/* Contact Strip */}
-        <div className="relative z-10 mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tide/30 text-white">
-              <Mail className="h-5 w-5" />
+          {/* Search Bar */}
+          <div className="mt-8 relative max-w-2xl mx-auto">
+            <div className="relative flex items-center">
+              <Search className="absolute left-4 h-5 w-5 text-ink-3 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search issues, 20% hold, cancellations, or enter ticket code (CT-XXXXXX)..."
+                className="w-full rounded-2xl border border-white/20 bg-elevated/95 pl-12 pr-28 py-3.5 text-sm text-ink placeholder:text-ink-3 shadow-xl backdrop-blur-md focus:border-tide focus:outline-none focus:ring-2 focus:ring-tide/20"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-24 text-xs text-ink-3 hover:text-ink"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  if (searchQuery.toUpperCase().startsWith('CT-')) {
+                    setTrackNumber(searchQuery.toUpperCase());
+                    setActiveTab('track');
+                    handleTrackTicket(searchQuery.toUpperCase());
+                  }
+                }}
+                className="absolute right-2 rounded-xl bg-tide px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-tide-2"
+              >
+                Search
+              </button>
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Guest Support Email</p>
-              <a href="mailto:support@coastaltrails.in" className="text-xs font-semibold text-white hover:underline">
-                support@coastaltrails.in
-              </a>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tide/30 text-white">
-              <Clock className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Desk Hours</p>
-              <p className="text-xs font-semibold text-white">9:00 AM – 9:00 PM IST (Daily)</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tide/30 text-white">
-              <MapPin className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">On-Ground Base</p>
-              <p className="text-xs font-semibold text-white">Gokarna Heritage Town, Karnataka</p>
+            {/* Quick Keyword Pills */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-[11px]">
+              <span className="text-slate-400">Popular:</span>
+              {[
+                { label: '20% Hold Policy', query: '20% hold' },
+                { label: 'Free Cancellation', query: 'cancellation' },
+                { label: 'Host Contact', query: 'host' },
+                { label: 'Half Moon Trek', query: 'half moon' },
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => setSearchQuery(chip.query)}
+                  className="rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-slate-200 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Navigation Tabs */}
-      <div className="mt-8 flex items-center justify-center">
-        <div className="inline-flex rounded-full border border-line bg-paper-2 p-1.5 shadow-xs">
-          <button
-            onClick={() => setActiveTab('create')}
-            className={cn(
-              'flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold transition-all',
-              activeTab === 'create' ? 'bg-tide text-white shadow-xs' : 'text-ink-2 hover:text-ink'
-            )}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Raise a Ticket
-          </button>
-          <button
-            onClick={() => setActiveTab('track')}
-            className={cn(
-              'flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold transition-all',
-              activeTab === 'track' ? 'bg-tide text-white shadow-xs' : 'text-ink-2 hover:text-ink'
-            )}
-          >
-            <Search className="h-3.5 w-3.5" />
-            Track Ticket Status
-          </button>
-          {currentUser ? (
+      {/* 2. Active Reservation Card (Airbnb / MakeMyTrip Special) */}
+      {selectedBooking ? (
+        <section className="mx-auto max-w-6xl">
+          <div className="rounded-3xl border border-line bg-elevated p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-tide/10 text-tide">
+                  <Calendar className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-tide">{selectedBooking.reference_code}</span>
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                      Confirmed Stay
+                    </span>
+                  </div>
+                  <h3 className="mt-1 font-display text-lg font-semibold text-ink sm:text-xl">
+                    {selectedBooking.homestay_title || 'Your Gokarna Stay'}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-ink-3">
+                    Check-in: <strong>{selectedBooking.check_in}</strong> &bull; Check-out: <strong>{selectedBooking.check_out}</strong> &bull;{' '}
+                    {selectedBooking.guests_count} Guests
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {selectedBooking.whatsapp_link && (
+                  <a
+                    href={selectedBooking.whatsapp_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-ok px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Host WhatsApp
+                  </a>
+                )}
+                <Link
+                  to="/bookings"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-paper-2 px-4 py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-paper"
+                >
+                  <FileText className="h-4 w-4" />
+                  View Voucher
+                </Link>
+                <button
+                  onClick={() => {
+                    setBookingRef(selectedBooking.reference_code);
+                    setCategory('booking');
+                    setActiveTab('create');
+                    const el = document.getElementById('ticket-form-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-tide px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-tide-2"
+                >
+                  <LifeBuoy className="h-4 w-4" />
+                  Raise Stay Issue
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 3. Explore Help by Category (Airbnb-Style 6 Topics Grid) */}
+      <section className="mx-auto max-w-6xl">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-line pb-4">
+          <div>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Browse by Category</span>
+            <h2 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Explore Help Topics</h2>
+          </div>
+          <span className="text-xs text-ink-3">Select a topic to view instant guides or raise a direct inquiry</span>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {TOPICS.map((topic) => {
+            const Icon = topic.icon;
+            const isSelected = selectedTopic === topic.id;
+            return (
+              <button
+                key={topic.id}
+                onClick={() => {
+                  setSelectedTopic(isSelected ? 'all' : topic.id);
+                  openTideChatWithCategory(topic.id);
+                }}
+                className={cn(
+                  'group flex flex-col text-left rounded-3xl border p-6 transition-all hover:shadow-lg',
+                  isSelected
+                    ? 'border-tide bg-tide/5 ring-2 ring-tide/20 shadow-md'
+                    : 'border-line bg-elevated hover:border-tide/40'
+                )}
+              >
+                <div className={cn('flex h-12 w-12 items-center justify-center rounded-2xl transition-transform group-hover:scale-105', topic.color)}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-4 font-display text-base font-semibold text-ink group-hover:text-tide transition-colors">
+                  {topic.title}
+                </h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-ink-2 flex-1">
+                  {topic.desc}
+                </p>
+                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-tide">
+                  <span>Get help with this</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 4. Support Desk & Ticket Portal (MakeMyTrip Multi-Service Hub) */}
+      <section id="ticket-form-section" className="mx-auto max-w-6xl pt-4">
+        {/* Navigation Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
+          <div>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Concierge Ticket Desk</span>
+            <h2 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Track or Raise Support Tickets</h2>
+          </div>
+
+          <div className="inline-flex rounded-2xl border border-line bg-paper-2 p-1.5 shadow-xs">
             <button
-              onClick={() => setActiveTab('my-tickets')}
+              onClick={() => setActiveTab('create')}
               className={cn(
-                'flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold transition-all',
-                activeTab === 'my-tickets' ? 'bg-tide text-white shadow-xs' : 'text-ink-2 hover:text-ink'
+                'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all',
+                activeTab === 'create' ? 'bg-tide text-white shadow-xs' : 'text-ink-2 hover:text-ink'
               )}
             >
-              <LifeBuoy className="h-3.5 w-3.5" />
-              My Tickets
+              <MessageSquare className="h-3.5 w-3.5" />
+              Raise Ticket
             </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="mt-8">
-        <AnimatePresence mode="wait">
-          {activeTab === 'create' && (
-            <motion.div
-              key="create"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="mx-auto max-w-3xl"
+            <button
+              onClick={() => setActiveTab('track')}
+              className={cn(
+                'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all',
+                activeTab === 'track' ? 'bg-tide text-white shadow-xs' : 'text-ink-2 hover:text-ink'
+              )}
             >
-              {createdTicket ? (
-                <div className="rounded-3xl border border-ok/30 bg-ok/5 p-8 text-center shadow-lg">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok/20 text-ok">
-                    <CheckCircle2 className="h-8 w-8" />
-                  </div>
-                  <h2 className="mt-4 font-display text-2xl font-semibold text-ink">Ticket Created Successfully!</h2>
-                  <p className="mx-auto mt-2 max-w-lg text-sm text-ink-2">
-                    Your request has been logged directly with our concierge team. A confirmation email has been sent to{' '}
-                    <strong>{createdTicket.email}</strong>.
-                  </p>
+              <Search className="h-3.5 w-3.5" />
+              Live Tracker
+            </button>
+            {currentUser && (
+              <button
+                onClick={() => setActiveTab('my-tickets')}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all',
+                  activeTab === 'my-tickets' ? 'bg-tide text-white shadow-xs' : 'text-ink-2 hover:text-ink'
+                )}
+              >
+                <LifeBuoy className="h-3.5 w-3.5" />
+                My Tickets
+              </button>
+            )}
+          </div>
+        </div>
 
-                  <div className="mx-auto mt-6 flex max-w-sm items-center justify-between rounded-2xl border border-line bg-elevated p-3.5 shadow-xs">
-                    <div className="text-left">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">Your Ticket Number</span>
-                      <p className="font-mono text-lg font-bold text-tide">{createdTicket.ticket_number}</p>
+        {/* Tab Content Body */}
+        <div className="mt-8">
+          <AnimatePresence mode="wait">
+            {activeTab === 'create' && (
+              <motion.div
+                key="create"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-10"
+              >
+                {createdTicket ? (
+                  <div className="rounded-3xl border border-ok/30 bg-ok/5 p-8 text-center shadow-lg">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok/20 text-ok">
+                      <CheckCircle2 className="h-8 w-8" />
                     </div>
-                    <button
-                      onClick={() => copyTicketNumber(createdTicket.ticket_number)}
-                      className="flex items-center gap-1.5 rounded-xl border border-line bg-paper-2 px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-paper"
-                    >
-                      {copiedCode ? <Check className="h-3.5 w-3.5 text-ok" /> : <Copy className="h-3.5 w-3.5" />}
-                      {copiedCode ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-
-                  <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                    <button
-                      onClick={() => {
-                        setTrackNumber(createdTicket.ticket_number);
-                        setTrackEmail(createdTicket.email);
-                        setActiveTab('track');
-                        handleTrackTicket(createdTicket.ticket_number, createdTicket.email);
-                      }}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-tide px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-tide-2"
-                    >
-                      Track This Ticket Now
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setCreatedTicket(null)}
-                      className="inline-flex h-11 items-center justify-center rounded-xl border border-line bg-elevated px-6 text-sm font-semibold text-ink transition-colors hover:bg-paper-2"
-                    >
-                      Raise Another Ticket
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-10">
-                  <div className="border-b border-line pb-6">
-                    <h2 className="font-display text-2xl font-semibold text-ink">Raise a Support Ticket</h2>
-                    <p className="mt-1 text-sm text-ink-2">
-                      Submit your issue or request. Our team typically replies within 2–4 hours during desk hours.
+                    <h2 className="mt-4 font-display text-2xl font-semibold text-ink">Ticket Logged Successfully!</h2>
+                    <p className="mx-auto mt-2 max-w-lg text-sm text-ink-2">
+                      Your ticket has been assigned to our concierge desk in Gokarna. A confirmation email has been dispatched to{' '}
+                      <strong>{createdTicket.email}</strong>.
                     </p>
-                  </div>
 
-                  <form onSubmit={handleCreateTicket} className="mt-6 space-y-6">
+                    <div className="mx-auto mt-6 flex max-w-sm items-center justify-between rounded-2xl border border-line bg-elevated p-3.5 shadow-xs">
+                      <div className="text-left">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">Ticket Reference</span>
+                        <p className="font-mono text-lg font-bold text-tide">{createdTicket.ticket_number}</p>
+                      </div>
+                      <button
+                        onClick={() => copyTicketNumber(createdTicket.ticket_number)}
+                        className="flex items-center gap-1.5 rounded-xl border border-line bg-paper-2 px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-paper"
+                      >
+                        {copiedCode ? <Check className="h-3.5 w-3.5 text-ok" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedCode ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+
+                    <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        onClick={() => {
+                          setTrackNumber(createdTicket.ticket_number);
+                          setTrackEmail(createdTicket.email);
+                          setActiveTab('track');
+                          handleTrackTicket(createdTicket.ticket_number, createdTicket.email);
+                        }}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-tide px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-tide-2"
+                      >
+                        Track Ticket Online
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setCreatedTicket(null)}
+                        className="inline-flex h-11 items-center justify-center rounded-xl border border-line bg-elevated px-6 text-sm font-semibold text-ink transition-colors hover:bg-paper-2"
+                      >
+                        Raise Another Ticket
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreateTicket} className="space-y-6 max-w-3xl mx-auto">
+                    <div>
+                      <h3 className="font-display text-xl font-semibold text-ink">Submit a Concierge Request</h3>
+                      <p className="mt-1 text-xs text-ink-2">
+                        Our dedicated hospitality team reviews requests within <strong>2–4 hours</strong> during desk hours (9 AM – 9 PM IST).
+                      </p>
+                    </div>
+
                     {/* Category Selection */}
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-wider text-ink-2">
-                        1. Select Category *
+                        1. Select Issue Category *
                       </label>
-                      <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                        {CATEGORIES.map((cat) => (
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {TOPICS.map((t) => (
                           <button
                             type="button"
-                            key={cat.id}
-                            onClick={() => setCategory(cat.id)}
+                            key={t.id}
+                            onClick={() => setCategory(t.id)}
                             className={cn(
-                              'flex flex-col text-left rounded-2xl border p-3.5 transition-all',
-                              category === cat.id
+                              'flex flex-col text-left rounded-2xl border p-3 transition-all',
+                              category === t.id
                                 ? 'border-tide bg-tide/5 text-ink shadow-xs ring-1 ring-tide'
                                 : 'border-line bg-paper-2 text-ink-2 hover:border-line-2 hover:text-ink'
                             )}
                           >
-                            <span className="text-xs font-semibold text-ink">{cat.label}</span>
-                            <span className="mt-1 text-[11px] text-ink-3 leading-snug">{cat.desc}</span>
+                            <span className="text-xs font-semibold text-ink">{t.title}</span>
+                            <span className="mt-0.5 text-[10px] text-ink-3 truncate">{t.desc}</span>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {/* Booking Reference (Optional) */}
+                    {/* Booking Reference */}
                     <div>
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-ink-2">
@@ -500,39 +734,33 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                         5. Your Contact Information
                       </label>
                       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <div>
-                          <input
-                            type="text"
-                            required
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Full Name *"
-                            className="w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email Address *"
-                            className="w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <input
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="Phone / WhatsApp"
-                            className="w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
-                          />
-                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Full Name *"
+                          className="w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                        />
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Email Address *"
+                          className="w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                        />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="Phone / WhatsApp"
+                          className="w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                        />
                       </div>
                     </div>
 
-                    {/* Priority */}
+                    {/* Urgency */}
                     <div className="flex items-center gap-3 text-xs">
                       <span className="font-semibold text-ink-2">Urgency:</span>
                       <button
@@ -568,111 +796,106 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                       </div>
                     )}
 
-                    <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-tide text-sm font-semibold text-white shadow-sm transition-transform hover:bg-tide-2 active:scale-95 disabled:opacity-50"
+                    >
+                      {submitting ? (
+                        <>
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Logging Ticket with Concierge...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          Submit Support Ticket
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'track' && (
+              <motion.div
+                key="track"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="max-w-3xl mx-auto space-y-6"
+              >
+                <div className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-8">
+                  <h3 className="font-display text-xl font-semibold text-ink">Track Your Ticket Status</h3>
+                  <p className="mt-1 text-xs text-ink-2">
+                    Enter your ticket code (e.g. <strong>CT-123456</strong>) and email to view progress and reply to the concierge.
+                  </p>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleTrackTicket();
+                    }}
+                    className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-5"
+                  >
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+                        Ticket Code *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={trackNumber}
+                        onChange={(e) => setTrackNumber(e.target.value.toUpperCase())}
+                        placeholder="CT-XXXXXX"
+                        className="mt-1 w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 font-mono text-sm uppercase text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+                        Registered Email
+                      </label>
+                      <input
+                        type="email"
+                        value={trackEmail}
+                        onChange={(e) => setTrackEmail(e.target.value)}
+                        placeholder="Email used when filing"
+                        className="mt-1 w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-end sm:col-span-1">
                       <button
                         type="submit"
-                        disabled={submitting}
-                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-tide text-sm font-semibold text-white shadow-sm transition-transform hover:bg-tide-2 active:scale-95 disabled:opacity-50"
+                        disabled={loadingTrack}
+                        className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-tide text-xs font-semibold text-white transition-colors hover:bg-tide-2 disabled:opacity-50"
                       >
-                        {submitting ? (
-                          <>
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            Logging Ticket with Concierge...
-                          </>
+                        {loadingTrack ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         ) : (
                           <>
-                            <Send className="h-4 w-4" />
-                            Submit Support Ticket
+                            <Search className="h-4 w-4" />
+                            Track
                           </>
                         )}
                       </button>
                     </div>
                   </form>
+
+                  {trackError && (
+                    <div className="mt-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/10 px-4 py-3 text-xs font-medium text-err">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{trackError}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </motion.div>
-          )}
 
-          {activeTab === 'track' && (
-            <motion.div
-              key="track"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="mx-auto max-w-3xl"
-            >
-              {/* Tracker Search Box */}
-              <div className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-8">
-                <h2 className="font-display text-2xl font-semibold text-ink">Track Support Ticket</h2>
-                <p className="mt-1 text-sm text-ink-2">
-                  Enter your ticket code (e.g. <strong>CT-123456</strong>) to check live status and follow up with the concierge.
-                </p>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleTrackTicket();
-                  }}
-                  className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-5"
-                >
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-ink-3">
-                      Ticket Code *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={trackNumber}
-                      onChange={(e) => setTrackNumber(e.target.value.toUpperCase())}
-                      placeholder="CT-XXXXXX"
-                      className="mt-1 w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 font-mono text-sm uppercase text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-ink-3">
-                      Your Email (for full history)
-                    </label>
-                    <input
-                      type="email"
-                      value={trackEmail}
-                      onChange={(e) => setTrackEmail(e.target.value)}
-                      placeholder="Email used when filing"
-                      className="mt-1 w-full rounded-xl border border-line-2 bg-paper-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-tide focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="flex items-end sm:col-span-1">
-                    <button
-                      type="submit"
-                      disabled={loadingTrack}
-                      className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-tide text-xs font-semibold text-white transition-colors hover:bg-tide-2 disabled:opacity-50"
-                    >
-                      {loadingTrack ? (
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        <>
-                          <Search className="h-4 w-4" />
-                          Track
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-
-                {trackError && (
-                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/10 px-4 py-3 text-xs font-medium text-err">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{trackError}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Ticket Details & Timeline */}
-              {trackedTicket && (
-                <div className="mt-6 space-y-6">
-                  <div className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-8">
+                {/* Tracked Ticket View */}
+                {trackedTicket && (
+                  <div className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-8 space-y-6">
                     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-6">
                       <div>
                         <div className="flex items-center gap-2">
@@ -694,15 +917,15 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                       )}
                     </div>
 
-                    {/* Timeline Tracker */}
-                    <div className="mt-6 border-b border-line pb-6">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-ink-3">Ticket Progress</p>
+                    {/* Stepper */}
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-ink-3">Resolution Progress</p>
                       <div className="mt-4 flex items-center justify-between">
                         <div className="flex flex-col items-center">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ok text-white shadow-xs">
                             <Check className="h-4 w-4" />
                           </div>
-                          <span className="mt-2 text-[11px] font-semibold text-ink">Received</span>
+                          <span className="mt-2 text-[11px] font-semibold text-ink">Logged</span>
                         </div>
                         <div className={cn('h-1 flex-1 mx-2 rounded-full', trackedTicket.status !== 'open' ? 'bg-ok' : 'bg-line')} />
                         <div className="flex flex-col items-center">
@@ -735,10 +958,10 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                       </div>
                     </div>
 
-                    {/* Messages Thread */}
-                    <div className="mt-6">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-3">Conversation &amp; Notes</h4>
-                      <div className="mt-4 space-y-4">
+                    {/* Conversation */}
+                    <div className="border-t border-line pt-6">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-3">Messages &amp; Notes</h4>
+                      <div className="mt-4 space-y-3">
                         {messages.map((m) => {
                           const isTraveler = m.sender_type === 'traveler';
                           return (
@@ -751,11 +974,13 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                                   : 'mr-auto bg-paper-2 border border-line text-ink rounded-tl-xs'
                               )}
                             >
-                              <div className="flex items-center justify-between gap-4 border-b border-ink/10 pb-2 mb-2 text-[10px]">
+                              <div className="flex items-center justify-between gap-4 border-b border-ink/10 pb-1.5 mb-2 text-[10px]">
                                 <span className="font-semibold text-tide">
                                   {isTraveler ? 'You (Traveler)' : `${m.sender_name} (Concierge)`}
                                 </span>
-                                <span className="text-ink-3">{new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-ink-3">
+                                  {new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
                               </div>
                               <p className="whitespace-pre-wrap">{m.message}</p>
                             </div>
@@ -763,10 +988,10 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                         })}
                       </div>
 
-                      {/* Reply Box if verified */}
+                      {/* Reply box */}
                       {isVerified ? (
                         <form onSubmit={handleSendReply} className="mt-6 border-t border-line pt-4">
-                          <label className="block text-xs font-semibold text-ink">Send an update or reply:</label>
+                          <label className="block text-xs font-semibold text-ink">Post a reply or follow-up note:</label>
                           <div className="mt-2 flex gap-2">
                             <input
                               type="text"
@@ -785,7 +1010,7 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                               ) : (
                                 <>
                                   <Send className="h-3.5 w-3.5" />
-                                  Send
+                                  Reply
                                 </>
                               )}
                             </button>
@@ -793,30 +1018,28 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                         </form>
                       ) : (
                         <div className="mt-6 rounded-xl border border-line bg-paper-2 p-4 text-center text-xs text-ink-2">
-                          To post a reply to this ticket, enter the email address used during submission above and click Track.
+                          Enter the email address used when logging this ticket above to access full conversation history and reply.
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
-              )}
-            </motion.div>
-          )}
+                )}
+              </motion.div>
+            )}
 
-          {activeTab === 'my-tickets' && (
-            <motion.div
-              key="my-tickets"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="mx-auto max-w-3xl"
-            >
-              <div className="rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-8">
+            {activeTab === 'my-tickets' && (
+              <motion.div
+                key="my-tickets"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="max-w-3xl mx-auto rounded-3xl border border-line bg-elevated p-6 shadow-xl shadow-ink/5 sm:p-8"
+              >
                 <div className="flex items-center justify-between border-b border-line pb-6">
                   <div>
-                    <h2 className="font-display text-2xl font-semibold text-ink">My Support Tickets</h2>
-                    <p className="mt-1 text-sm text-ink-2">All tickets registered under your traveler profile.</p>
+                    <h3 className="font-display text-xl font-semibold text-ink">My Support Tickets</h3>
+                    <p className="mt-1 text-xs text-ink-2">All tickets registered under your profile.</p>
                   </div>
                   <button
                     onClick={() => setActiveTab('create')}
@@ -837,12 +1060,6 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                     <LifeBuoy className="mx-auto h-10 w-10 text-ink-3" />
                     <p className="mt-3 text-sm font-semibold text-ink">No tickets found</p>
                     <p className="mt-1 text-xs text-ink-2">You haven&apos;t raised any support tickets yet.</p>
-                    <button
-                      onClick={() => setActiveTab('create')}
-                      className="mt-4 rounded-xl border border-line bg-paper-2 px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-paper"
-                    >
-                      Raise a Ticket Now
-                    </button>
                   </div>
                 ) : (
                   <div className="mt-6 space-y-3">
@@ -876,28 +1093,109 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
                           }}
                           className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-elevated px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-paper"
                         >
-                          View Details &rarr;
+                          View Status &rarr;
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </section>
 
-      {/* FAQs Section */}
-      <section className="mx-auto mt-16 max-w-3xl border-t border-line pt-12">
+      {/* 5. 24x7 Direct Assistance Channels (MakeMyTrip Contact Bar) */}
+      <section className="mx-auto max-w-6xl">
+        <div className="border-b border-line pb-4">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Direct Contact</span>
+          <h2 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Still Need Help? Reach Our Team</h2>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Channel 1: Tide Chat */}
+          <div className="rounded-3xl border border-line bg-elevated p-6 flex flex-col justify-between shadow-sm">
+            <div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-tide/10 text-tide">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 font-display text-base font-semibold text-ink">Live Tide Concierge</h3>
+              <p className="mt-1 text-xs text-ink-2">Instant answers to stays, availability, prices, and booking vouchers.</p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-tide-chat'))}
+              className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-tide py-2.5 text-xs font-semibold text-white transition-colors hover:bg-tide-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Chat with Tide
+            </button>
+          </div>
+
+          {/* Channel 2: WhatsApp */}
+          <div className="rounded-3xl border border-line bg-elevated p-6 flex flex-col justify-between shadow-sm">
+            <div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ok/10 text-ok">
+                <MessageCircle className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 font-display text-base font-semibold text-ink">WhatsApp Desk</h3>
+              <p className="mt-1 text-xs text-ink-2">Direct messaging for on-road guidance, check-in arrival, and boat pickups.</p>
+            </div>
+            <a
+              href="https://wa.me/918050000000?text=Hello%20Coastal%20Trails%20Concierge%2C%20I%20need%20help%20with%20my%20stay"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-ok py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Message WhatsApp
+            </a>
+          </div>
+
+          {/* Channel 3: Email */}
+          <div className="rounded-3xl border border-line bg-elevated p-6 flex flex-col justify-between shadow-sm">
+            <div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600">
+                <Mail className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 font-display text-base font-semibold text-ink">Guest Email Support</h3>
+              <p className="mt-1 text-xs text-ink-2">Detailed inquiries, formal receipts, and booking adjustments.</p>
+            </div>
+            <a
+              href="mailto:support@coastaltrails.in?subject=Coastal%20Trails%20Guest%20Support"
+              className="mt-5 flex items-center justify-center gap-1.5 rounded-xl border border-line bg-paper-2 py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-paper"
+            >
+              <Mail className="h-4 w-4" />
+              support@coastaltrails.in
+            </a>
+          </div>
+
+          {/* Channel 4: Local Outpost */}
+          <div className="rounded-3xl border border-line bg-elevated p-6 flex flex-col justify-between shadow-sm">
+            <div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+                <Clock className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 font-display text-base font-semibold text-ink">Operating Hours</h3>
+              <p className="mt-1 text-xs text-ink-2">Concierge active <strong>9:00 AM – 9:00 PM IST</strong> every day across Gokarna.</p>
+            </div>
+            <div className="mt-5 flex items-center justify-center gap-1.5 rounded-xl border border-line bg-paper-2 py-2.5 text-xs font-medium text-ink-2">
+              <MapPin className="h-4 w-4 text-ember" />
+              Gokarna Heritage Town
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Filterable FAQs Accordion */}
+      <section className="mx-auto max-w-4xl border-t border-line pt-12">
         <div className="text-center">
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Instant Answers</span>
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Self Service</span>
           <h2 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Frequently Asked Questions</h2>
-          <p className="mt-2 text-xs text-ink-2">Answers to common traveler inquiries in Gokarna.</p>
+          <p className="mt-2 text-xs text-ink-2">Quick answers to standard questions about visiting Gokarna and booking stays.</p>
         </div>
 
         <div className="mt-8 space-y-3">
-          {FAQS.map((faq, index) => {
+          {filteredFaqs.map((faq, index) => {
             const isOpen = openFaq === index;
             return (
               <div
@@ -930,6 +1228,53 @@ export function ContactSupportPage({ currentUser }: { currentUser?: User | null 
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* 7. Airbnb-Style "CoastalCover" Guarantee Strip */}
+      <section className="mx-auto max-w-6xl">
+        <div className="rounded-3xl border border-line bg-elevated p-8 sm:p-10 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-tide text-white">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-display text-xl font-semibold text-ink">Coastal Trails Traveler Protection</h3>
+                <p className="text-xs text-ink-2">Every booking includes our complete guest peace-of-mind guarantee.</p>
+              </div>
+            </div>
+            <span className="font-mono text-[11px] font-semibold text-tide uppercase tracking-wider">
+              100% Direct Fair-Host Model
+            </span>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 text-xs">
+            <div>
+              <p className="font-semibold text-ink">Verified Family Homestays</p>
+              <p className="mt-1 text-ink-2 leading-relaxed">
+                Every property and host is personally vetted on-ground in Kudle, Om, and Main Beach.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">20% Fair Hold Rate</p>
+              <p className="mt-1 text-ink-2 leading-relaxed">
+                Pay only 20% online to hold your dates. Pay the remaining 80% directly to the host on arrival.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">Free 48h Cancellation</p>
+              <p className="mt-1 text-ink-2 leading-relaxed">
+                Cancel up to 48 hours prior to check-in for a full, automatic return of your commitment hold.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">On-Ground Concierge</p>
+              <p className="mt-1 text-ink-2 leading-relaxed">
+                Real hospitality specialists in Gokarna ready to guide your cliff treks, boats, and stay comfort.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </div>

@@ -157,7 +157,7 @@ if ($zip->open($target) === TRUE) {
 
   // Step 4: Restart Node Process on Server
   console.log('5. Triggering Node restart on cPanel...');
-  const restartCmd = '/usr/bin/pkill -9 -u coastaee -f "node index.js" ; sleep 1 ; cd /home2/coastaee/app && /home2/coastaee/nodejs/bin/node index.js >> /home2/coastaee/app/app.log 2>&1 &';
+  const restartCmd = '/usr/bin/pkill -9 -u coastaee -f index.js ; sleep 1 ; cd /home2/coastaee/app && nohup /home2/coastaee/nodejs/bin/node --max-old-space-size=256 index.js </dev/null >> /home2/coastaee/app/app.log 2>&1 &';
   const cronQ = querystring.stringify({
     cpanel_jsonapi_module: 'Cron',
     cpanel_jsonapi_func: 'add_line',
@@ -180,7 +180,8 @@ if ($zip->open($target) === TRUE) {
 
   const linekey = resCron?.cpanelresult?.data?.[0]?.linekey;
   console.log('   Restart scheduled with key:', linekey);
-  await new Promise(r => setTimeout(r, 4000));
+  console.log('   Waiting 65s for cron to trigger restart...');
+  await new Promise(r => setTimeout(r, 65000));
 
   if (linekey) {
     const rmQ = querystring.stringify({
