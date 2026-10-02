@@ -660,7 +660,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl, minutes = 15 
 }
 
 export async function sendTicketConfirmationEmail({ to, ticket }) {
-  const safeName = escapeHtml(ticket.name || 'Traveler');
+  const safeName = escapeHtml(String(ticket.name || 'traveler').split(' ')[0]);
   const safeNumber = escapeHtml(ticket.ticket_number);
   const safeCategory = escapeHtml(ticket.category || 'General Inquiry');
   const safeSubject = escapeHtml(ticket.subject);
@@ -681,10 +681,10 @@ export async function sendTicketConfirmationEmail({ to, ticket }) {
                   </td>
                   <td valign="middle">
                     <div>
-                      <span style="background-color:#e4f2ee;color:#0f3d35;font-size:9px;font-weight:800;letter-spacing:0.8px;padding:3px 6px;border-radius:4px;text-transform:uppercase;">Concierge Helpdesk</span>
+                      <span style="background-color:#e4f2ee;color:#0f3d35;font-size:9px;font-weight:800;letter-spacing:0.8px;padding:3px 6px;border-radius:4px;text-transform:uppercase;">Concierge Notice</span>
                     </div>
-                    <div style="font-family:'Courier New',monospace;font-size:15px;font-weight:800;color:#0f3d35;letter-spacing:0.5px;margin-top:3px;">${safeNumber}</div>
-                    <div style="font-size:10px;color:#697471;margin-top:2px;letter-spacing:0.2px;">Guest: ${safeName}</div>
+                    <div style="font-family:'Courier New',monospace;font-size:15px;font-weight:800;color:#0f3d35;letter-spacing:0.5px;margin-top:3px;">SUPPORT TICKET ${safeNumber}</div>
+                    <div style="font-size:10px;color:#697471;margin-top:2px;letter-spacing:0.2px;">Account: ${safeName}</div>
                   </td>
                   <td align="right" valign="middle">
                     ${statusPill}
@@ -708,64 +708,41 @@ export async function sendTicketConfirmationEmail({ to, ticket }) {
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 10px auto;">
                 <tr>
                   <td style="background-color:#ecfdf5;border:1px solid #a7f3d0;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;color:#047857;">
-                    ${icon('life-buoy', 12, 'margin-right:3px;')}
-                    Support Ticket Logged
+                    ${icon('shield-check', 12, 'margin-right:3px;')}
+                    Verified Support Request
                   </td>
                 </tr>
               </table>
 
               <h2 style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;line-height:28px;color:#0f3d35;font-weight:800;letter-spacing:-0.3px;text-align:center;">
-                ${safeSubject}
+                Support Request Received
               </h2>
 
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
-                <tr>
-                  <td valign="middle" style="padding-right:5px;">${icon('map-pin', 14)}</td>
-                  <td valign="middle" style="font-size:13px;color:#4a5568;line-height:17px;">Gokarna Concierge Desk &bull; Karnataka</td>
-                </tr>
-              </table>
+              <p style="margin:0 auto 16px auto;max-width:480px;font-size:14px;line-height:22px;color:#4a5568;text-align:center;">
+                Hi <strong>${safeName}</strong>, we received your support request regarding <strong>${safeSubject}</strong>. Click the button below to view and track your ticket online.
+              </p>
 
-              <div style="margin-top:16px;padding-top:12px;border-top:1px solid #f1f5f9;">
-                <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td align="center" valign="middle" style="font-size:12px;color:#64748b;line-height:18px;">
-                      ${icon('clock', 14, 'margin-right:5px;')}
-                      <strong style="color:#1e293b;">Operating Window:</strong> 9:00 AM &ndash; 9:00 PM IST &bull; Expected Response: 2&ndash;4 Hours
-                    </td>
-                  </tr>
-                </table>
+              <div style="margin:20px 0 16px 0;text-align:center;">
+                <a href="${trackUrl}" style="display:inline-block;background-color:#0f3d35;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 32px;border-radius:10px;box-shadow:0 2px 8px rgba(15,61,53,0.25);">
+                  Track Ticket Now
+                </a>
               </div>
             </td>
           </tr>
 
           <tr>
-            <td class="mobile-padding" style="padding:12px 22px 18px 22px;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;">
+            <td class="mobile-padding" style="padding:16px 22px;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;background-color:#fafcfb;">
               <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td colspan="2" style="padding-bottom:8px;">
-                    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td align="left">
-                          <span style="font-size:11px;font-weight:700;color:#0f3d35;display:inline-block;">
-                            ${icon('shield-check', 12, 'margin-right:3px;')}
-                            Category: ${safeCategory}
-                          </span>
-                        </td>
-                        <td align="right" style="font-size:11px;color:#64748b;font-weight:600;">Priority: ${escapeHtml(ticket.priority || 'Normal')}</td>
-                      </tr>
-                    </table>
+                  <td width="50%" valign="top" class="itinerary-half" style="padding-right:12px;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Expected Response</div>
+                    <div style="font-size:15px;font-weight:800;color:#0f172a;margin:2px 0;">2 &ndash; 4 Hours</div>
+                    <div style="font-size:11px;color:#64748b;">${icon('clock', 11, 'margin-right:2px;')} 9:00 AM &ndash; 9:00 PM IST</div>
                   </td>
-                </tr>
-                <tr>
-                  <td width="50%" valign="top" class="itinerary-half" style="padding-top:8px;padding-right:12px;">
-                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Ticket Code</div>
-                    <div style="font-family:'Courier New',monospace;font-size:16px;font-weight:800;color:#0f3d35;margin:2px 0;">${safeNumber}</div>
-                    <div style="font-size:11px;color:#64748b;">Gokarna Concierge Outpost</div>
-                  </td>
-                  <td width="50%" align="right" valign="top" class="itinerary-half" style="padding-top:8px;padding-left:12px;border-left:1px dashed #e2e8f0;">
-                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Linked Booking</div>
-                    <div style="font-family:'Courier New',monospace;font-size:16px;font-weight:800;color:#0f172a;margin:2px 0;">${safeBookingRef || 'None'}</div>
-                    <div style="font-size:11px;color:#64748b;">${safeBookingRef ? 'Verified Stay' : 'General Inquiry'}</div>
+                  <td width="50%" align="right" valign="top" class="itinerary-half" style="padding-left:12px;border-left:1px dashed #e2e8f0;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Support Level</div>
+                    <div style="font-size:15px;font-weight:800;color:#0f3d35;margin:2px 0;text-transform:capitalize;">${escapeHtml(ticket.priority || 'Normal')}</div>
+                    <div style="font-size:11px;color:#047857;">${icon('check-circle-2', 11, 'margin-right:2px;')} Gokarna Concierge</div>
                   </td>
                 </tr>
               </table>
@@ -773,61 +750,44 @@ export async function sendTicketConfirmationEmail({ to, ticket }) {
           </tr>
 
           <tr>
-            <td class="mobile-padding" style="padding:20px 22px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
-                <tr>
-                  <td valign="middle" style="padding-right:5px;">${icon('receipt', 13)}</td>
-                  <td valign="middle" style="font-size:11px;font-weight:800;color:#0f3d35;text-transform:uppercase;letter-spacing:0.8px;">Ticket Receipt</td>
-                </tr>
-              </table>
+            <td class="mobile-padding" style="padding:18px 22px;">
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">Ticket Details:</div>
+                <div style="font-size:12px;color:#1e293b;line-height:20px;">
+                  <strong>Reference:</strong> <span style="font-family:'Courier New',monospace;color:#0f3d35;font-weight:700;">${safeNumber}</span><br>
+                  <strong>Category:</strong> <span style="text-transform:capitalize;">${safeCategory}</span><br>
+                  ${safeBookingRef ? `<strong>Linked Stay:</strong> <span style="font-family:'Courier New',monospace;color:#0f3d35;font-weight:700;">${safeBookingRef}</span><br>` : ''}
+                  <strong>Subject:</strong> ${safeSubject}
+                </div>
+                ${safeDescription ? `
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:12px;color:#475569;line-height:18px;white-space:pre-wrap;">
+                  <strong>Message:</strong> ${safeDescription}
+                </div>` : ''}
+              </div>
 
-              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size:13px;line-height:22px;">
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">Button not working?</div>
+                <div style="font-size:11px;color:#64748b;line-height:16px;word-break:break-all;">
+                  Copy and paste this URL directly into your browser:<br>
+                  <a href="${trackUrl}" style="color:#0f3d35;font-weight:600;text-decoration:underline;">${trackUrl}</a>
+                </div>
+              </div>
+
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size:11px;color:#64748b;line-height:17px;">
                 <tr>
-                  <td style="color:#64748b;padding:4px 0;">Ticket Reference</td>
-                  <td align="right" style="font-weight:700;color:#0f3d35;padding:4px 0;font-family:'Courier New',monospace;">${safeNumber}</td>
-                </tr>
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Subject</td>
-                  <td align="right" style="font-weight:600;color:#1e293b;padding:4px 0;">${safeSubject}</td>
-                </tr>
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Category</td>
-                  <td align="right" style="font-weight:600;color:#1e293b;padding:4px 0;text-transform:capitalize;">${safeCategory}</td>
-                </tr>
-                ${safeBookingRef ? `
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Linked Booking</td>
-                  <td align="right" style="font-weight:700;color:#0f3d35;padding:4px 0;font-family:'Courier New',monospace;">${safeBookingRef}</td>
-                </tr>` : ''}
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Status</td>
-                  <td align="right" style="padding:4px 0;">${statusPill}</td>
-                </tr>
-                <tr>
-                  <td colspan="2" style="padding-top:6px;border-bottom:1px solid #f1f5f9;"></td>
-                </tr>
-                <tr>
-                  <td colspan="2" style="padding-top:10px;">
-                    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Request Details:</div>
-                    <div style="font-size:13px;color:#1e293b;line-height:20px;background-color:#fafcfb;border:1px solid #f1f5f9;border-radius:8px;padding:10px 14px;white-space:pre-wrap;">${safeDescription}</div>
+                  <td valign="top" style="padding-right:6px;">${icon('bell', 13)}</td>
+                  <td valign="top">
+                    You can also reply directly to this email &mdash; your response will be appended to this ticket and forwarded immediately to our team.
                   </td>
                 </tr>
               </table>
-
-              <div style="margin-top:10px;font-size:11px;color:#64748b;line-height:16px;">
-                You can reply directly to this email or track updates on your ticket live anytime.
-              </div>
-
-              <div style="margin-top:16px;text-align:center;">
-                <a href="${trackUrl}" style="display:inline-block;background-color:#0f3d35;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:12px 28px;border-radius:10px;">Track ticket online</a>
-              </div>
             </td>
           </tr>
 
           <tr>
             <td class="mobile-padding" style="background-color:#ffffff;border-top:1px solid #f0eee3;padding:18px 22px;text-align:center;">
-              <p style="margin:0 0 5px 0;font-size:11px;color:#43504d;font-weight:600;">Have questions about your booking or need trail directions?</p>
-              <p style="margin:0 0 8px 0;font-size:12px;color:#626f6b;">Our team is ready to assist at <a href="mailto:support@coastaltrails.in" style="color:#0f3d35;font-weight:800;text-decoration:underline;">support@coastaltrails.in</a></p>
+              <p style="margin:0 0 5px 0;font-size:11px;color:#43504d;font-weight:600;">Have questions or need assistance with your ticket?</p>
+              <p style="margin:0 0 8px 0;font-size:12px;color:#626f6b;">Our concierge team is ready to assist at <a href="mailto:support@coastaltrails.in" style="color:#0f3d35;font-weight:800;text-decoration:underline;">support@coastaltrails.in</a></p>
               <p style="margin:0;font-size:10px;color:#8e9794;letter-spacing:0.3px;">&copy; 2026 Coastal Trails Hospitality Network &bull; Gokarna, Karnataka. All rights reserved.</p>
             </td>
           </tr>
@@ -837,8 +797,8 @@ export async function sendTicketConfirmationEmail({ to, ticket }) {
   // 1. Send confirmation to user
   results.push(send({
     to,
-    subject: `Ticket received · ${safeNumber} — ${safeSubject}`,
-    html: emailShell({ title: `Support Ticket Received · ${safeNumber} | Coastal Trails`, inner }),
+    subject: `Support ticket received · ${safeNumber}`,
+    html: emailShell({ title: `Support ticket received · ${safeNumber}`, inner }),
     label: 'support-ticket-confirmation',
   }));
 
@@ -860,7 +820,7 @@ export async function sendTicketConfirmationEmail({ to, ticket }) {
                       <span style="background-color:#fef8ec;color:#b45309;font-size:9px;font-weight:800;letter-spacing:0.8px;padding:3px 6px;border-radius:4px;text-transform:uppercase;">Admin Notification</span>
                     </div>
                     <div style="font-family:'Courier New',monospace;font-size:15px;font-weight:800;color:#0f3d35;letter-spacing:0.5px;margin-top:3px;">${safeNumber}</div>
-                    <div style="font-size:10px;color:#697471;margin-top:2px;letter-spacing:0.2px;">Traveler: ${safeName}</div>
+                    <div style="font-size:10px;color:#697471;margin-top:2px;letter-spacing:0.2px;">Account: ${safeName}</div>
                   </td>
                   <td align="right" valign="middle">
                     ${pill('New Ticket', '#0f3d35', '#e4f2ee', '#bfe0d7')}
@@ -900,57 +860,53 @@ export async function sendTicketConfirmationEmail({ to, ticket }) {
 
               <div style="margin:20px 0 16px 0;text-align:center;">
                 <a href="${trackUrl}" style="display:inline-block;background-color:#0f3d35;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 32px;border-radius:10px;box-shadow:0 2px 8px rgba(15,61,53,0.25);">
-                  Open Ticket in Portal &rarr;
+                  Open Ticket in Portal
                 </a>
               </div>
             </td>
           </tr>
 
           <tr>
-            <td class="mobile-padding" style="padding:20px 22px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+            <td class="mobile-padding" style="padding:16px 22px;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;background-color:#fafcfb;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td valign="middle" style="padding-right:5px;">${icon('receipt', 13)}</td>
-                  <td valign="middle" style="font-size:11px;font-weight:800;color:#0f3d35;text-transform:uppercase;letter-spacing:0.8px;">Inquiry Breakdown</td>
+                  <td width="50%" valign="top" class="itinerary-half" style="padding-right:12px;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Priority</div>
+                    <div style="font-size:15px;font-weight:800;color:${ticket.priority === 'urgent' ? '#b91c1c' : '#0f3d35'};margin:2px 0;text-transform:capitalize;">${escapeHtml(ticket.priority || 'Normal')}</div>
+                    <div style="font-size:11px;color:#64748b;">${icon('clock', 11, 'margin-right:2px;')} Concierge SLA: 2&ndash;4h</div>
+                  </td>
+                  <td width="50%" align="right" valign="top" class="itinerary-half" style="padding-left:12px;border-left:1px dashed #e2e8f0;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Category</div>
+                    <div style="font-size:15px;font-weight:800;color:#0f3d35;margin:2px 0;text-transform:capitalize;">${safeCategory}</div>
+                    <div style="font-size:11px;color:#047857;">${icon('check-circle-2', 11, 'margin-right:2px;')} Gokarna Concierge</div>
+                  </td>
                 </tr>
               </table>
+            </td>
+          </tr>
 
-              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size:13px;line-height:22px;">
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Guest Name</td>
-                  <td align="right" style="font-weight:700;color:#1e293b;padding:4px 0;">${safeName}</td>
-                </tr>
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Email</td>
-                  <td align="right" style="font-weight:600;color:#1e293b;padding:4px 0;">${escapeHtml(to)}</td>
-                </tr>
-                ${ticket.phone ? `
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Phone</td>
-                  <td align="right" style="font-weight:600;color:#1e293b;padding:4px 0;">${escapeHtml(ticket.phone)}</td>
-                </tr>` : ''}
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Category</td>
-                  <td align="right" style="font-weight:600;color:#1e293b;padding:4px 0;text-transform:capitalize;">${safeCategory}</td>
-                </tr>
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Priority</td>
-                  <td align="right" style="font-weight:700;color:${ticket.priority === 'urgent' ? '#b91c1c' : '#0f3d35'};padding:4px 0;text-transform:uppercase;">${escapeHtml(ticket.priority || 'normal')}</td>
-                </tr>
-                ${safeBookingRef ? `
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Booking Ref</td>
-                  <td align="right" style="font-weight:700;color:#0f3d35;padding:4px 0;font-family:'Courier New',monospace;">${safeBookingRef}</td>
-                </tr>` : ''}
-                <tr>
-                  <td style="color:#64748b;padding:4px 0;">Subject</td>
-                  <td align="right" style="font-weight:600;color:#1e293b;padding:4px 0;">${safeSubject}</td>
-                </tr>
-              </table>
+          <tr>
+            <td class="mobile-padding" style="padding:18px 22px;">
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">Guest Information:</div>
+                <div style="font-size:12px;color:#1e293b;line-height:20px;">
+                  <strong>Guest:</strong> ${safeName}<br>
+                  <strong>Email:</strong> ${escapeHtml(to)}<br>
+                  ${ticket.phone ? `<strong>Phone:</strong> ${escapeHtml(ticket.phone)}<br>` : ''}
+                  ${safeBookingRef ? `<strong>Booking Ref:</strong> <span style="font-family:'Courier New',monospace;color:#0f3d35;font-weight:700;">${safeBookingRef}</span><br>` : ''}
+                  <strong>Subject:</strong> ${safeSubject}
+                </div>
+                ${safeDescription ? `
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:12px;color:#475569;line-height:18px;white-space:pre-wrap;">
+                  <strong>Message:</strong> ${safeDescription}
+                </div>` : ''}
+              </div>
 
-              <div style="margin-top:14px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;">
-                <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">Guest Message:</div>
-                <div style="font-size:12px;color:#334155;line-height:18px;white-space:pre-wrap;">${safeDescription}</div>
+              <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">Portal URL:</div>
+                <div style="font-size:11px;color:#64748b;line-height:16px;word-break:break-all;">
+                  <a href="${trackUrl}" style="color:#0f3d35;font-weight:600;text-decoration:underline;">${trackUrl}</a>
+                </div>
               </div>
             </td>
           </tr>
