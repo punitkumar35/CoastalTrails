@@ -72,13 +72,13 @@ export function Navbar({
             />
           </button>
 
-          <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-line bg-paper-2 p-1 lg:flex shadow-xs">
+          <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 xl:gap-1 rounded-full border border-line bg-paper-2 p-0.5 xl:p-1 lg:flex shadow-xs">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id, item.path)}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-2.5 py-1 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
+                  'flex items-center gap-1 xl:gap-1.5 rounded-full px-2 py-1 lg:px-2.5 lg:py-1 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
                   item.active ? 'bg-tide text-white' : 'text-ink-2 hover:text-ink',
                 )}
               >
@@ -88,7 +88,7 @@ export function Navbar({
             ))}
             <a
               href="/gokarna/"
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap text-ink-2 hover:text-ink"
+              className="flex items-center gap-1 xl:gap-1.5 rounded-full px-2 py-1 lg:px-2.5 lg:py-1 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap text-ink-2 hover:text-ink"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span>Gokarna Guide</span>
@@ -96,7 +96,7 @@ export function Navbar({
             <button
               onClick={() => navigate('/support')}
               className={cn(
-                'flex items-center gap-1.5 rounded-full px-2.5 py-1 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
+                'flex items-center gap-1 xl:gap-1.5 rounded-full px-2 py-1 lg:px-2.5 lg:py-1 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
                 location.pathname === '/support' || location.pathname === '/contact'
                   ? 'bg-tide text-white'
                   : 'text-ink-2 hover:text-ink'
@@ -108,13 +108,15 @@ export function Navbar({
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <NavbarWeatherBadge />
+            <div className="hidden sm:flex lg:hidden xl:flex">
+              <NavbarWeatherBadge />
+            </div>
             <button
               onClick={() => navigate('/support')}
               aria-label="Support Desk"
               title="Support Desk"
               className={cn(
-                'flex h-8 sm:h-9 px-2 sm:px-3 shrink-0 items-center justify-center gap-1.5 rounded-full border transition-all text-xs font-semibold',
+                'flex lg:hidden h-8 sm:h-9 px-2 sm:px-3 shrink-0 items-center justify-center gap-1.5 rounded-full border transition-all text-xs font-semibold',
                 location.pathname === '/support' || location.pathname === '/contact'
                   ? 'border-tide bg-tide/10 text-tide'
                   : 'border-line bg-elevated text-ink-2 hover:border-tide/40 hover:text-ink'
@@ -133,7 +135,7 @@ export function Navbar({
             {onOpenPalette ? (
               <button
                 onClick={onOpenPalette}
-                className="hidden items-center gap-2 rounded-full border border-line bg-elevated px-3 py-1.5 text-xs text-ink-3 transition-colors hover:text-ink xl:flex"
+                className="hidden items-center gap-2 rounded-full border border-line bg-elevated px-3 py-1.5 text-xs text-ink-3 transition-colors hover:text-ink 2xl:flex"
               >
                 <Search className="h-3.5 w-3.5" />
                 <span className="font-mono">⌘K</span>

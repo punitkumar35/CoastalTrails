@@ -45,7 +45,7 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="/gokarna/assets/gokarna.css" />
+    <link rel="stylesheet" href="/gokarna/assets/gokarna.css?v=20261002b" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -141,6 +141,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
             <span>Gokarna Guide</span>
           </a>
+          <a href="/support">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+            <span>Support</span>
+          </a>
         </nav>
         <div class="nav-actions">
           <button type="button" class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
@@ -165,6 +169,10 @@
               <a class="user-link" href="/bookings">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
                 <span>My Bookings</span>
+              </a>
+              <a class="user-link" href="/support">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+                <span>Support Desk</span>
               </a>
               <button type="button" class="user-signout" id="signout-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
@@ -191,6 +199,10 @@
       <a href="/gokarna/" aria-current="page">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
         <span>Guide</span>
+      </a>
+      <a href="/support">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+        <span>Support</span>
       </a>
     </nav>
 
@@ -448,52 +460,118 @@
       </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <a class="brand" href="/">
-            <img class="logo-light" src="/coastal-trails-logo.svg" alt="Coastal Trails" width="150" height="50" />
-            <img class="logo-dark" src="/coastal-trails-logo-dark.svg" alt="" aria-hidden="true" width="150" height="50" />
-            <span>Coastal Trails</span>
-          </a>
-          <p>Curated family-run homestays, coastal trails and travel guides across Gokarna, Karnataka.</p>
-          <p><a href="mailto:bookings@coastaltrails.in">bookings@coastaltrails.in</a></p>
+        <footer class="site-footer">
+      <svg viewBox="0 0 1440 56" preserveAspectRatio="none" aria-hidden="true" class="footer-wave">
+        <path fill="currentColor" d="M0 28 C 240 56, 480 0, 720 28 C 960 56, 1200 0, 1440 28 L 1440 56 L 0 56 Z"></path>
+      </svg>
+      <div class="footer-inner">
+        <div class="footer-escape-card">
+          <p class="overline">Plan your escape</p>
+          <h2>The coast is <span>calling.</span></h2>
+          <p>Twelve family-stewarded stays across six enclaves, with a 20% hold and ₹0 convenience fee.</p>
+          <div class="footer-escape-actions">
+            <a class="btn btn-primary" href="/">Explore stays</a>
+            <a class="btn btn-ghost" href="/trails">Trails &amp; Culture</a>
+          </div>
         </div>
-        <nav aria-label="Gokarna guide">
-          <h3>Gokarna guide</h3>
-          <ul>
-            <li><a href="/gokarna/">Gokarna Travel Guide</a></li>
-            <li><a href="/gokarna/beaches/">Best Beaches</a></li>
-            <li><a href="/gokarna/5-beach-trek/">5-Beach Trek</a></li>
-            <li><a href="/gokarna/tours/">Tours &amp; Experiences</a></li>
-            <li><a href="/gokarna/camping/">Camping</a></li>
-            <li><a href="/gokarna/things-to-do/">Things to Do</a></li>
-          </ul>
-        </nav>
-        <nav aria-label="Travel guides">
-          <h3>Travel guides</h3>
-          <ul>
-            <li><a href="/gokarna/travel-guide/">All Travel Guides</a></li>
-            <li><a href="/gokarna/travel-guide/best-time-to-visit/">Best Time to Visit</a></li>
-            <li><a href="/gokarna/travel-guide/how-to-reach/">How to Reach Gokarna</a></li>
-            <li><a href="/gokarna/travel-guide/2-day-itinerary/">2-Day Itinerary</a></li>
-            <li><a href="/gokarna/travel-guide/3-day-itinerary/">3-Day Itinerary</a></li>
-            <li><a href="/gokarna/travel-guide/trip-cost/">Trip Cost</a></li>
-          </ul>
-        </nav>
-        <nav aria-label="Coastal Trails">
-          <h3>Coastal Trails</h3>
-          <ul>
-            <li><a href="/">Plan a stay</a></li>
-            <li><a href="/trails">Trails &amp; Culture Journal</a></li>
-            <li><a href="/bookings">Track a booking</a></li>
-            <li><a href="mailto:bookings@coastaltrails.in">Email us</a></li>
-          </ul>
-        </nav>
-      </div>
-      <div class="footer-bottom">
-        <p>© 2026 Coastal Trails · Gokarna, Uttara Kannada, Karnataka 581326, India</p>
-        <p><a href="/sitemap.xml">Sitemap</a></p>
+
+        <div class="footer-main-grid">
+          <div class="footer-col-brand">
+            <div class="brand-lockup">
+              <img class="logo-light" src="/coastal-trails-logo.svg" alt="Coastal Trails" width="150" height="50" />
+              <img class="logo-dark" src="/coastal-trails-logo-dark.svg" alt="" aria-hidden="true" width="150" height="50" />
+              <span class="brand-title">Coastal Trails</span>
+            </div>
+            <p>Curated coastal living and authentic family-run homestays across Gokarna, Karnataka. Sustaining local stewardship through a direct 10% fair aggregation.</p>
+            <div class="footer-fair-host">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              <span>10% Fair Host Model</span>
+            </div>
+            <div class="footer-social-links">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><polygon points="10 15 15 12 10 9 10 15"/></svg>
+              </a>
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+              </a>
+              <a href="mailto:concierge@coastaltrails.in" aria-label="Email">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="footer-col">
+            <h4>Coastal enclaves</h4>
+            <ul>
+              <li><a href="/">Kudle Beach Clifftops</a></li>
+              <li><a href="/">Om Beach Rock Shacks</a></li>
+              <li><a href="/">Half Moon Secluded Cove</a></li>
+              <li><a href="/">Paradise Beach Eco Pods</a></li>
+              <li><a href="/">Main Beach Heritage</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4>Plan &amp; guides</h4>
+            <ul>
+              <li><a href="/gokarna/">Gokarna Travel Guide</a></li>
+              <li><a href="/gokarna/beaches/">Best Beaches in Gokarna</a></li>
+              <li><a href="/gokarna/5-beach-trek/">Gokarna 5-Beach Trek</a></li>
+              <li><a href="/gokarna/camping/">Gokarna Camping</a></li>
+              <li><a href="/gokarna/travel-guide/">Itineraries &amp; Trip Cost</a></li>
+              <li><a href="/trails">Trails &amp; Culture</a></li>
+              <li><a href="/bookings">Track Bookings</a></li>
+              <li><a href="/support">Contact &amp; Support</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col footer-newsletter">
+            <h4>Tide letters</h4>
+            <p>One calm email a month — new stays, tide charts and trail notes. No noise.</p>
+            <form onsubmit="event.preventDefault(); alert('You\'re on the tide list.'); this.reset();">
+              <input type="email" placeholder="you@example.com" aria-label="Email for tide letters" required />
+              <button type="submit" aria-label="Subscribe">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </form>
+            <div class="footer-coords">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>14.55° N · 74.32° E — Gokarna, Karnataka</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-marquee-wrap">
+          <div class="footer-marquee">
+            <span>Kudle Beach Clifftops</span><span class="dot">·</span>
+            <span>Om Beach Rock Shacks</span><span class="dot">·</span>
+            <span>Half Moon Secluded Cove</span><span class="dot">·</span>
+            <span>Paradise Beach Eco Pods</span><span class="dot">·</span>
+            <span>Main Beach Heritage</span><span class="dot">·</span>
+            <span>Kudle Beach Clifftops</span><span class="dot">·</span>
+            <span>Om Beach Rock Shacks</span><span class="dot">·</span>
+            <span>Half Moon Secluded Cove</span><span class="dot">·</span>
+            <span>Paradise Beach Eco Pods</span><span class="dot">·</span>
+            <span>Main Beach Heritage</span><span class="dot">·</span>
+          </div>
+        </div>
+
+        <div class="footer-bottom-bar">
+          <div>© 2026 Coastal Trails. Registered under Karnataka Coastal Tourism Initiative.</div>
+          <div class="footer-bottom-links">
+            <a href="/bookings">Track Bookings</a>
+            <a href="/support">Support Desk</a>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+          </div>
+          <button type="button" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" class="footer-top-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="19" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            <span>Top</span>
+          </button>
+        </div>
       </div>
     </footer>
     <script src="/gokarna/assets/gokarna.js" defer></script>
