@@ -8,6 +8,9 @@ import {
   Review,
   ReviewSummary,
   WishlistStay,
+  SupportTicket,
+  SupportTicketMessage,
+  CreateTicketPayload,
 } from '../types';
 
 const API_BASE = '/api';
@@ -618,5 +621,70 @@ export const api = {
   async resetDatabase(): Promise<void> {
     const res = await fetch(`${API_BASE}/db/reset`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to reset database');
-  }
+  },
+
+  // Support Tickets API
+  async createSupportTicket(data: CreateTicketPayload): Promise<{ ok: boolean; ticket: SupportTicket; message: string }> {
+    const res = await fetch(`${API_BASE}/support/tickets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.error || 'Failed to create support ticket');
+    }
+    return result;
+  },
+
+  async trackSupportTicket(
+    ticketNumber: string,
+    email?: string
+  ): Promise<{ ok: boolean; isVerified: boolean; ticket: SupportTicket; messages: SupportTicketMessage[]; notice?: string }> {
+    const q = email ? `?email=${encodeURIComponent(email)}` : '';
+    const res = await fetch(`${API_BASE}/support/tickets/track/${encodeURIComponent(ticketNumber)}${q}`, {
+      headers: { ...authHeaders() },
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.error || 'Failed to track support ticket');
+    }
+    return result;
+  },
+
+  async getMySupportTickets(): Promise<SupportTicket[]> {
+    const res = await fetch(`${API_BASE}/support/tickets/my`, {
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Failed to fetch support tickets');
+    }
+    const data = await res.json();
+    return data.tickets || [];
+  },
+
+  async addSupportTicketMessage(
+    ticketNumber: string,
+    message: string,
+    email?: string,
+    senderName?: string
+  ): Promise<{ ok: boolean; message: SupportTicketMessage }> {
+    const res = await fetch(`${API_BASE}/support/tickets/${encodeURIComponent(ticketNumber)}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+      body: JSON.stringify({ message, email, sender_name: senderName }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.error || 'Failed to send message');
+    }
+    return result;
+  },
 };

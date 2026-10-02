@@ -208,6 +208,45 @@ async function runMigrations() {
       CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  // Support tickets table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id VARCHAR(64) PRIMARY KEY,
+      ticket_number VARCHAR(32) NOT NULL UNIQUE,
+      user_id VARCHAR(64) NULL,
+      name VARCHAR(120) NOT NULL,
+      email VARCHAR(191) NOT NULL,
+      phone VARCHAR(32) NULL,
+      booking_reference VARCHAR(32) NULL,
+      category VARCHAR(64) NOT NULL DEFAULT 'general',
+      subject VARCHAR(255) NOT NULL,
+      description TEXT NOT NULL,
+      priority ENUM('low', 'normal', 'high', 'urgent') DEFAULT 'normal',
+      status ENUM('open', 'in_progress', 'resolved', 'closed') DEFAULT 'open',
+      admin_notes TEXT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_tickets_user (user_id),
+      INDEX idx_tickets_email (email),
+      INDEX idx_tickets_number (ticket_number),
+      INDEX idx_tickets_booking (booking_reference)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  // Support ticket messages (replies / conversation history)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_ticket_messages (
+      id VARCHAR(64) PRIMARY KEY,
+      ticket_id VARCHAR(64) NOT NULL,
+      sender_type ENUM('traveler', 'concierge', 'system') DEFAULT 'traveler',
+      sender_name VARCHAR(120) NOT NULL,
+      message TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_ticket_messages_ticket (ticket_id),
+      CONSTRAINT fk_ticket_messages_ticket FOREIGN KEY (ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 // Create the database if missing, then apply the schema

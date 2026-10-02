@@ -65,6 +65,9 @@ const ForgotPasswordPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
 );
+const ContactSupportPage = lazy(() =>
+  import('./pages/ContactSupportPage').then((m) => ({ default: m.ContactSupportPage })),
+);
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const CommandPalette = lazy(() => import('./components/ui/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
@@ -501,6 +504,8 @@ export function App() {
 
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/contact" element={<ContactSupportPage currentUser={currentUser} />} />
+            <Route path="/support" element={<ContactSupportPage currentUser={currentUser} />} />
             <Route path="/database" element={<DatabaseStudioPage />} />
             <Route path="/survey" element={<SurveyWorkspacePage />} />
 

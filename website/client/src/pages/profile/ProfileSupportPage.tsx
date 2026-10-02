@@ -77,6 +77,31 @@ export function ProfileSupportPage() {
         <p className="mt-1 text-sm text-ink-2">Booking questions, host coordination and account help.</p>
       </div>
 
+      {/* Online Support Portal Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-tide/30 bg-tide/5 p-6 shadow-sm">
+        <div>
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-tide">Official Helpdesk</span>
+          <h2 className="mt-1 font-display text-lg font-semibold text-ink">Coastal Support Ticket System</h2>
+          <p className="mt-1 text-xs text-ink-2">
+            File tracked tickets for booking disputes, refunds, host coordination, and get responses within 2–4 hours.
+          </p>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Link
+            to="/support"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-tide px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-tide-2"
+          >
+            Raise a Ticket
+          </Link>
+          <Link
+            to="/support?ticket="
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-line bg-elevated px-4 text-xs font-semibold text-ink transition-colors hover:bg-paper-2"
+          >
+            Track Tickets
+          </Link>
+        </div>
+      </div>
+
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-3xl border border-line bg-elevated p-6 shadow-[0_1px_2px_rgba(22,34,46,0.04),0_20px_44px_-30px_rgba(22,34,46,0.3)]">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-tide/10 text-tide">

@@ -112,12 +112,14 @@ async function main() {
   fs.copyFileSync(path.join(SERVER_DIR, 'index.js'), path.join(STAGING_DIR, 'index.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'package.json'), path.join(STAGING_DIR, 'package.json'));
   fs.copyFileSync(path.join(SERVER_DIR, 'db/index.js'), path.join(STAGING_DIR, 'db/index.js'));
+  fs.copyFileSync(path.join(SERVER_DIR, 'db/schema.sql'), path.join(STAGING_DIR, 'db/schema.sql'));
   fs.copyFileSync(path.join(SERVER_DIR, 'middleware/rateLimiter.js'), path.join(STAGING_DIR, 'middleware/rateLimiter.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'middleware/auth.js'), path.join(STAGING_DIR, 'middleware/auth.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'routes/auth.js'), path.join(STAGING_DIR, 'routes/auth.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'routes/bookings.js'), path.join(STAGING_DIR, 'routes/bookings.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'routes/payments.js'), path.join(STAGING_DIR, 'routes/payments.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'routes/wishlist.js'), path.join(STAGING_DIR, 'routes/wishlist.js'));
+  fs.copyFileSync(path.join(SERVER_DIR, 'routes/support.js'), path.join(STAGING_DIR, 'routes/support.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'routes/upload.js'), path.join(STAGING_DIR, 'routes/upload.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'services/mail.js'), path.join(STAGING_DIR, 'services/mail.js'));
   fs.copyFileSync(path.join(SERVER_DIR, 'utils/whatsapp.js'), path.join(STAGING_DIR, 'utils/whatsapp.js'));

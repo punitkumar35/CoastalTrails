@@ -35,6 +35,7 @@ const planLinks: { label: string; path?: string; href?: string }[] = [
   { label: 'Itineraries & Trip Cost', href: '/gokarna/travel-guide/' },
   { label: 'Trails & Culture', path: '/trails' },
   { label: 'Track Bookings', path: '/bookings' },
+  { label: 'Contact & Support', path: '/support' },
 ];
 
 function FooterLink({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
@@ -255,6 +256,9 @@ export function Footer({
           <div className="flex items-center gap-6">
             <button onClick={() => onNavigate('/bookings')} className="font-medium transition-colors hover:text-ink">
               Track Bookings
+            </button>
+            <button onClick={() => onNavigate('/support')} className="font-medium transition-colors hover:text-ink">
+              Support Desk
             </button>
             <button className="font-medium transition-colors hover:text-ink">Privacy</button>
             <button className="font-medium transition-colors hover:text-ink">Terms</button>

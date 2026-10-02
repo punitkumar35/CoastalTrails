@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CalendarCheck, Home, Compass, LogOut, MapPin, Moon, Sun, Search, UserRound, type LucideIcon } from 'lucide-react';
+import { CalendarCheck, Home, Compass, LogOut, MapPin, Moon, Sun, Search, UserRound, LifeBuoy, type LucideIcon } from 'lucide-react';
 import { NavbarWeatherBadge } from './NavbarWeatherBadge';
 import { useTheme } from '../lib/theme';
 import { cn } from '../lib/cn';
@@ -93,6 +93,18 @@ export function Navbar({
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span>Gokarna Guide</span>
             </a>
+            <button
+              onClick={() => navigate('/support')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-full px-2.5 py-1 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 text-xs font-semibold transition-colors duration-micro whitespace-nowrap',
+                location.pathname === '/support' || location.pathname === '/contact'
+                  ? 'bg-tide text-white'
+                  : 'text-ink-2 hover:text-ink'
+              )}
+            >
+              <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
+              <span>Support</span>
+            </button>
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -163,6 +175,17 @@ export function Navbar({
                       <UserRound className="h-3.5 w-3.5 text-tide" />
                       <span>My Profile</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('/support');
+                        setIsProfileOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-ink-2 transition-colors hover:bg-paper-2 hover:text-ink"
+                    >
+                      <LifeBuoy className="h-3.5 w-3.5 text-tide" />
+                      <span>Support Desk</span>
+                    </button>
                     {onSignOut ? (
                       <button
                         type="button"
@@ -212,11 +235,23 @@ export function Navbar({
           ))}
           <a
             href="/gokarna/"
-            className="flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-colors text-ink-3 hover:text-ink"
+            className="flex flex-col items-center gap-1 rounded-xl px-2.5 py-1 transition-colors text-ink-3 hover:text-ink"
           >
             <MapPin className="h-5 w-5" />
             <span className="text-[10px] font-medium">Guide</span>
           </a>
+          <button
+            onClick={() => navigate('/support')}
+            className={cn(
+              'flex flex-col items-center gap-1 rounded-xl px-2.5 py-1 transition-colors',
+              location.pathname === '/support' || location.pathname === '/contact'
+                ? 'text-tide font-semibold'
+                : 'text-ink-3 hover:text-ink'
+            )}
+          >
+            <LifeBuoy className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Help</span>
+          </button>
         </div>
       </nav>
     </>

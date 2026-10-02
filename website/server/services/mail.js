@@ -658,3 +658,145 @@ export async function sendPasswordResetEmail({ to, name, resetUrl, minutes = 15 
     label: 'password-reset',
   });
 }
+
+export async function sendTicketConfirmationEmail({ to, ticket }) {
+  const safeName = escapeHtml(ticket.name || 'Traveler');
+  const safeNumber = escapeHtml(ticket.ticket_number);
+  const safeCategory = escapeHtml(ticket.category || 'General Inquiry');
+  const safeSubject = escapeHtml(ticket.subject);
+  const safeBookingRef = ticket.booking_reference ? escapeHtml(ticket.booking_reference) : null;
+  const safeDescription = escapeHtml(ticket.description || '');
+  const trackUrl = `${SITE_URL}/support?ticket=${encodeURIComponent(ticket.ticket_number)}`;
+
+  const inner = `
+        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-container" style="max-width:580px;margin:0 auto;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;box-shadow:0 12px 30px rgba(15,61,53,0.06);">
+          <tr>
+            <td class="mobile-padding" style="background:linear-gradient(135deg,#0a2924 0%,#0f3d35 60%,#1a5c50 100%);padding:24px 26px 22px 26px;color:#ffffff;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td valign="middle">
+                    <img src="cid:coastallogo" alt="Coastal Trails" width="38" height="38" style="display:inline-block;vertical-align:middle;border:0;">
+                    <img src="cid:wordmark" alt="Coastal Trails" height="18" style="display:inline-block;vertical-align:middle;margin-left:10px;border:0;">
+                  </td>
+                  <td align="right" valign="middle">
+                    <span style="display:inline-block;background-color:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Concierge Support</span>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:20px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#8be3c9;">Support Request Received</div>
+                <h1 style="margin:4px 0 0 0;font-size:22px;font-weight:800;color:#ffffff;line-height:28px;">Ticket #${safeNumber}</h1>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:22px 24px;border-bottom:1px solid #f1f5f9;background-color:#ffffff;">
+              <p style="margin:0 0 12px 0;font-size:14px;color:#1e293b;line-height:22px;">
+                Hello <strong>${safeName}</strong>,
+              </p>
+              <p style="margin:0 0 16px 0;font-size:13px;color:#475569;line-height:20px;">
+                Your support ticket has been received and logged with our concierge desk. Our dedicated hospitality team in Gokarna is reviewing your request.
+              </p>
+
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:12px;line-height:20px;">
+                <tr>
+                  <td width="35%" style="color:#64748b;padding:3px 0;">Ticket Number</td>
+                  <td width="65%" style="font-weight:800;color:#0f3d35;font-family:'Courier New',monospace;padding:3px 0;">${safeNumber}</td>
+                </tr>
+                <tr>
+                  <td style="color:#64748b;padding:3px 0;">Category</td>
+                  <td style="font-weight:600;color:#1e293b;padding:3px 0;text-transform:capitalize;">${safeCategory}</td>
+                </tr>
+                ${safeBookingRef ? `
+                <tr>
+                  <td style="color:#64748b;padding:3px 0;">Booking Reference</td>
+                  <td style="font-weight:700;color:#0f3d35;font-family:'Courier New',monospace;padding:3px 0;">${safeBookingRef}</td>
+                </tr>` : ''}
+                <tr>
+                  <td style="color:#64748b;padding:3px 0;">Subject</td>
+                  <td style="font-weight:700;color:#1e293b;padding:3px 0;">${safeSubject}</td>
+                </tr>
+                <tr>
+                  <td style="color:#64748b;padding:3px 0;">Current Status</td>
+                  <td style="padding:3px 0;"><span style="display:inline-block;background-color:#fef8ec;border:1px solid #f6d8a3;color:#b45309;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;">&bull; Open</span></td>
+                </tr>
+              </table>
+
+              <div style="background-color:#ffffff;border-left:3px solid #0f3d35;padding:10px 14px;margin-bottom:18px;border-radius:0 8px 8px 0;background-color:#fafcfb;">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;margin-bottom:3px;">Your Issue Description</div>
+                <div style="font-size:12px;color:#334155;line-height:18px;white-space:pre-wrap;">${safeDescription}</div>
+              </div>
+
+              <div style="text-align:center;margin:22px 0 10px 0;">
+                <a href="${trackUrl}" style="display:inline-block;background-color:#0f3d35;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:12px 28px;border-radius:10px;box-shadow:0 4px 12px rgba(15,61,53,0.2);">
+                  Track Ticket Status Online &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:16px 22px;border-bottom:1px solid #f1f5f9;background-color:#fafcfb;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" valign="top" class="itinerary-half" style="padding-right:12px;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Expected Response</div>
+                    <div style="font-size:14px;font-weight:800;color:#0f172a;margin:2px 0;">2 &ndash; 4 Hours</div>
+                    <div style="font-size:11px;color:#64748b;">${icon('clock', 11, 'margin-right:2px;')} 9:00 AM &ndash; 9:00 PM IST</div>
+                  </td>
+                  <td width="50%" align="right" valign="top" class="itinerary-half" style="padding-left:12px;border-left:1px dashed #e2e8f0;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Direct Escalation</div>
+                    <div style="font-size:14px;font-weight:800;color:#0f3d35;margin:2px 0;">Priority Queue</div>
+                    <div style="font-size:11px;color:#047857;">${icon('shield-check', 11, 'margin-right:2px;')} On-ground Concierge</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="background-color:#ffffff;padding:18px 22px;text-align:center;">
+              <p style="margin:0 0 5px 0;font-size:11px;color:#43504d;font-weight:600;">You can also reply directly to this email or track anytime on our website.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;color:#626f6b;">Coastal Concierge Team &bull; <a href="mailto:support@coastaltrails.in" style="color:#0f3d35;font-weight:800;text-decoration:underline;">support@coastaltrails.in</a></p>
+              <p style="margin:0;font-size:10px;color:#8e9794;letter-spacing:0.3px;">&copy; 2026 Coastal Trails Hospitality Network &bull; Gokarna, Karnataka. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>`;
+
+  const results = [];
+  // 1. Send confirmation to user
+  results.push(send({
+    to,
+    subject: `Support Ticket Received: #${safeNumber} - ${safeSubject}`,
+    html: emailShell({ title: `Support Ticket Received: #${safeNumber}`, inner }),
+    label: 'support-ticket-confirmation',
+  }));
+
+  // 2. Alert admin team if MAIL_ADMIN is configured and different
+  const adminEmail = process.env.MAIL_ADMIN;
+  if (adminEmail && adminEmail.toLowerCase() !== to.toLowerCase()) {
+    results.push(send({
+      to: adminEmail,
+      subject: `[New Ticket #${safeNumber}] [${ticket.priority || 'normal'}] ${safeSubject}`,
+      html: emailShell({
+        title: `[New Ticket #${safeNumber}] from ${safeName}`,
+        inner: `
+          <div style="max-width:580px;margin:0 auto;background:#ffffff;border:1px solid #cbd5e1;border-radius:14px;padding:20px;font-family:sans-serif;">
+            <h2 style="color:#0f3d35;margin-top:0;">New Support Ticket Logged: #${safeNumber}</h2>
+            <p><strong>From:</strong> ${safeName} (${escapeHtml(to)}${ticket.phone ? `, ` + escapeHtml(ticket.phone) : ''})</p>
+            <p><strong>Category:</strong> ${safeCategory} | <strong>Priority:</strong> ${escapeHtml(ticket.priority || 'normal')}</p>
+            ${safeBookingRef ? `<p><strong>Booking Ref:</strong> ${safeBookingRef}</p>` : ''}
+            <p><strong>Subject:</strong> ${safeSubject}</p>
+            <div style="background:#f1f5f9;padding:12px 16px;border-radius:8px;margin:12px 0;white-space:pre-wrap;">${safeDescription}</div>
+            <a href="${trackUrl}" style="display:inline-block;background:#0f3d35;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold;">View Ticket in Portal</a>
+          </div>
+        `,
+      }),
+      label: 'support-ticket-admin-alert',
+    }));
+  }
+
+  return Promise.all(results);
+}
+

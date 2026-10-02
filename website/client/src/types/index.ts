@@ -190,3 +190,55 @@ export interface NavigationTarget {
   coords: [number, number];
   distanceKm?: number;
 }
+
+export type TicketCategory =
+  | 'booking'
+  | 'cancellation'
+  | 'refund'
+  | 'payment'
+  | 'property_host'
+  | 'trail_transit'
+  | 'account'
+  | 'general';
+
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface SupportTicketMessage {
+  id: string;
+  ticket_id: string;
+  sender_type: 'traveler' | 'concierge' | 'system';
+  sender_name: string;
+  message: string;
+  created_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticket_number: string;
+  user_id?: string | null;
+  name: string;
+  email: string;
+  phone?: string | null;
+  booking_reference?: string | null;
+  category: TicketCategory;
+  subject: string;
+  description: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  admin_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  messages?: SupportTicketMessage[];
+}
+
+export interface CreateTicketPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  booking_reference?: string;
+  category: TicketCategory;
+  subject: string;
+  description: string;
+  priority?: TicketPriority;
+}
